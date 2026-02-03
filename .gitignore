@@ -18,3 +18,4 @@ staticfiles/
 htmlcov/
 .pytest_cache/
 .tox/
+.vscode/
