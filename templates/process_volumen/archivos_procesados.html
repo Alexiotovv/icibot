@@ -1,0 +1,854 @@
+<!-- templates/archivos_procesados.html -->
+{% extends 'dashboard.html' %}
+
+{% block title %}Archivos Procesados - Sistema ICI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">📁 Archivos Procesados</h1>
+            <p class="text-muted mb-0">Listado de todos los archivos ZIP procesados en el sistema.</p>
+        </div>
+        <div>
+            <a href="{% url 'subir_archivo' %}" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Subir Nuevo Archivo
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Buscar por nombre</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           placeholder="Buscar archivo..." value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_inicio" class="form-label">Fecha desde</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio"
+                           value="{{ request.GET.fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_fin" class="form-label">Fecha hasta</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                           value="{{ request.GET.fecha_fin }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                    <a href="{% url 'archivos_procesados' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Archivos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ archivos.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-folder fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Registros FormDet
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_formdet }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-table fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Último Archivo
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                {% if archivos.first %}
+                                {{ archivos.first.created_at|date:"d/m/Y" }}
+                                {% else %}
+                                No hay datos
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Tu Espacio Usado
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% widthratio archivos.count 100 1 %}%
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-database fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de archivos en cards -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Listado de Archivos</h5>
+            <span class="badge bg-primary">{{ archivos.count }} archivos</span>
+        </div>
+        <div class="card-body p-4">
+            {% if archivos %}
+            <div class="row">
+                {% for archivo in archivos %}
+                <div class="col-12 mb-4">
+                    <div class="card border shadow-sm file-card">
+                        <!-- Header del archivo -->
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-archive text-primary me-2"></i>
+                                <h6 class="mb-0 fw-bold">{{ archivo.nombre_archivo }}</h6>
+                                <span class="badge bg-secondary ms-2">
+                                    {{ archivo.updated_at|timesince }} atrás
+                                </span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <button class="dropdown-item" data-bs-toggle="modal" 
+                                                data-bs-target="#detalleModal{{ archivo.id }}">
+                                            <i class="fas fa-eye me-2"></i>Ver Detalles
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'exportar_archivo' archivo.id %}">
+                                            <i class="fas fa-download me-2"></i>Descargar
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Contenido del archivo -->
+                        <div class="card-body">
+                            <!-- Primera fila: Usuario y fecha -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-light rounded-circle me-2">
+                                            <span class="avatar-title text-dark fw-bold">
+                                                {{ archivo.usuario.username|first|upper }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ archivo.usuario.username }}</div>
+                                            <small class="text-muted">Usuario</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-md-end">
+                                    <div>
+                                        <div class="fw-bold">{{ archivo.created_at|date:"d/m/Y H:i" }}</div>
+                                        <small class="text-muted">Fecha de carga</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Segunda fila: Contenido específico del archivo -->
+                            <div class="file-content">
+                                {% if archivo.formularios_detalle.exists %}
+                                    <!-- Si tiene FormDet -->
+                                    {% comment %} <h6 class="text-muted mb-2">CODIGO_PRE</h6>
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>ANNOMES</th>
+                                                    <th>SALDO</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for registro in archivo.formularios_detalle.all|slice:":5" %}
+                                                <tr>
+                                                    <td>{{ registro.ANNOMES }}</td>
+                                                    <td class="text-end">{{ registro.SALDO }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div> {% endcomment %}
+                                    
+                                    <!-- Mostrar TOTALS si existe -->
+                                       {% if archivo.formularios_detalle.count > 0 %}
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <h6 class="text-muted mb-2">ESTADÍSTICAS</h6>
+                                                <table class="table table-sm table-bordered">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td class="fw-bold">Total registros:</td>
+                                                            <td class="text-end">{{ archivo.formularios_detalle.count }}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    
+                                {% elif archivo.ime1_registros.exists or archivo.imed2_registros.exists or archivo.imed3_registros.exists %}
+                                    <!-- Si tiene IMEI, IMED2, IMED3 -->
+                                    <h6 class="text-muted mb-3">FormDet</h6>
+                                    <div class="text-center">
+                                        <div class="display-6 mb-2">{{ archivo.formularios_detalle.count|default:0 }}</div>
+                                        <p class="text-muted mb-3">registros</p>
+                                    </div>
+                                    
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <div class="border rounded p-2">
+                                                <div class="h5 mb-1">{{ archivo.ime1_registros.count|default:0 }}</div>
+                                                <small class="text-muted">IMEI</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="border rounded p-2">
+                                                <div class="h5 mb-1">{{ archivo.imed2_registros.count|default:0 }}</div>
+                                                <small class="text-muted">IMED2</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="border rounded p-2">
+                                                <div class="h5 mb-1">{{ archivo.imed3_registros.count|default:0 }}</div>
+                                                <small class="text-muted">IMED3</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <!-- Archivo vacío -->
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">Este archivo no contiene registros</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Tercera fila: Botones y estado -->
+                            <div class="row mt-3 pt-3 border-top">
+                                <div class="col-md-6 text-md-end">
+                                    {% if archivo.formularios_detalle.exists or archivo.ime1_registros.exists %}
+                                    <span class="badge bg-success rounded-pill me-2">
+                                        <i class="fas fa-check-circle me-1"></i>Procesado
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning rounded-pill me-2">
+                                        <i class="fas fa-exclamation-circle me-1"></i>Vacío
+                                    </span>
+                                    {% endif %}
+                                    <!-- Botón Eliminar con atributos data -->
+
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar" 
+                                            data-archivo-id="{{ archivo.id }}"
+                                            data-archivo-nombre="{{ archivo.nombre_archivo }}"
+                                            data-formdet-count="{{ archivo.formularios_detalle.count }}"
+                                            data-ime1-count="{{ archivo.ime1_registros.count }}"
+                                            data-imed2-count="{{ archivo.imed2_registros.count }}"
+                                            data-imed3-count="{{ archivo.imed3_registros.count }}">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="text-center py-5">
+                <div class="text-muted">
+                    <i class="fas fa-folder-open fa-3x mb-3"></i>
+                    <h5>No hay archivos procesados</h5>
+                    <p class="mb-0">Sube tu primer archivo ZIP para comenzar</p>
+                    <a href="{% url 'subir_archivo' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-upload me-2"></i>Subir Archivo
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Paginación -->
+        {% if archivos.has_other_pages %}
+        <div class="card-footer bg-white py-3">
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if archivos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ archivos.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-angle-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-angle-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    {% for num in archivos.paginator.page_range %}
+                        {% if archivos.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > archivos.number|add:'-3' and num < archivos.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if archivos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ archivos.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ archivos.paginator.num_pages }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-angle-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="fas fa-angle-double-right"></i></span>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="text-center text-muted mt-2">
+                    Página {{ archivos.number }} de {{ archivos.paginator.num_pages }}
+                </div>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Información adicional -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información Importante</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Los archivos deben ser en formato ZIP</li>
+                        <li>Cada ZIP debe contener archivos DBF con los formatos correctos</li>
+                        <li>El sistema procesa automáticamente FormDet, IME1, IMED2 e IMED3</li>
+                        <li>Los archivos permanecen disponibles para consulta y exportación</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Estadísticas Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center py-2">
+                                <div class="h4 mb-1">{{ total_formdet }}</div>
+                                <small class="text-muted">Total FormDet</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center py-2">
+                                <div class="h4 mb-1">{{ archivos.count }}</div>
+                                <small class="text-muted">Archivos Totales</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center py-2">
+                                <div class="h4 mb-1">{{ hoy_count }}</div>
+                                <small class="text-muted">Hoy</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center py-2">
+                                <div class="h4 mb-1">{{ usuarios_count }}</div>
+                                <small class="text-muted">Usuarios Activos</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modales (mantenidos de tu versión original) -->
+{% comment %} {% for archivo in archivos %}
+    <!-- Modal Detalle -->
+    <div class="modal fade" id="detalleModal{{ archivo.id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Detalles del Archivo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ... contenido del modal detalle ... -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="{% url 'ver_registros' archivo.id %}" class="btn btn-primary">Ver Todos los Registros</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endfor %} {% endcomment %}
+
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="eliminarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="eliminarMensaje">¿Estás seguro de que deseas eliminar el archivo?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Esta acción eliminará permanentemente:
+                    <ul class="mb-0 mt-2" id="eliminarDetalles">
+                        <li><strong id="formdet-count">0</strong> registros FormDet</li>
+                        <li><strong id="ime1-count">0</strong> registros IME1</li>
+                        <li><strong id="imed2-count">0</strong> registros IMED2</li>
+                        <li><strong id="imed3-count">0</strong> registros IMED3</li>
+                        <li class="mt-2 fw-bold">Total: <strong id="total-count">0</strong> registros</li>
+                    </ul>
+                </div>
+                <p class="text-danger fw-bold mb-0">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    ¡Esta acción no se puede deshacer!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <form id="eliminarForm" method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="confirmacion" value="true">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Eliminar Permanentemente
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<style>
+    .icon-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .file-card {
+        border-radius: 8px;
+        transition: transform 0.2s;
+    }
+
+    .file-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+    }
+
+    .file-card .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .file-content table {
+        font-size: 0.85rem;
+    }
+
+    .file-content table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .page-link {
+        border-radius: 4px;
+        margin: 0 2px;
+        border: none;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .display-6 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        line-height: 1.2;
+    }
+
+    .border-top {
+        border-top: 1px solid #dee2e6 !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery primero -->
+
+
+
+
+<script>
+$(document).ready(function() {
+    // ============================================
+    // 1. INICIALIZACIÓN DE COMPONENTES BOOTSTRAP
+    // ============================================
+    
+    // Tooltips
+    $('[data-bs-toggle="tooltip"]').each(function() {
+        new bootstrap.Tooltip(this);
+    });
+    
+    // ============================================
+    // 2. FUNCIONALIDAD DE FILTROS
+    // ============================================
+    
+    // Auto-completar fecha fin cuando fecha inicio cambia
+    $('#fecha_inicio').on('change', function() {
+        var fechaInicio = $(this).val();
+        var fechaFin = $('#fecha_fin');
+        
+        if (fechaInicio && !fechaFin.val()) {
+            fechaFin.val(fechaInicio);
+        }
+    });
+    
+    // ============================================
+    // 3. FUNCIONALIDAD ELIMINAR ARCHIVOS
+    // ============================================
+    
+    // Variable para almacenar el modal de Bootstrap
+    var eliminarModal = null;
+    
+    // Cuando se hace clic en cualquier botón con clase .btn-eliminar
+    $(document).on('click', '.btn-eliminar', function(event) {
+
+
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Obtener datos del botón clickeado
+        var $boton = $(this);
+        var datos = {
+            id: $boton.data('archivo-id'),
+            nombre: $boton.data('archivo-nombre'),
+            formdet: $boton.data('formdet-count') || 0,
+            ime1: $boton.data('ime1-count') || 0,
+            imed2: $boton.data('imed2-count') || 0,
+            imed3: $boton.data('imed3-count') || 0
+        };
+        
+        // Validar que tengamos los datos mínimos
+        if (!datos.id || !datos.nombre) {
+            mostrarError('No se pudieron obtener los datos del archivo');
+            return false;
+        }
+        
+        // Calcular total de registros
+        var totalRegistros = parseInt(datos.formdet) + parseInt(datos.ime1) + 
+                            parseInt(datos.imed2) + parseInt(datos.imed3);
+        
+        // ============================================
+        // ACTUALIZAR CONTENIDO DEL MODAL
+        // ============================================
+        
+        // 1. Actualizar mensaje principal
+        $('#eliminarMensaje').html(
+            '¿Estás seguro de que deseas eliminar el archivo <strong>' + 
+            escapeHTML(datos.nombre) + 
+            '</strong>?'
+        );
+        
+        // 2. Actualizar lista de registros a eliminar
+        $('#formdet-count').text(datos.formdet);
+        $('#ime1-count').text(datos.ime1);
+        $('#imed2-count').text(datos.imed2);
+        $('#imed3-count').text(datos.imed3);
+        $('#total-count').text(totalRegistros);
+        
+        // 3. Actualizar URL del formulario
+        var urlEliminar = "{% url 'eliminar_archivo' 0 %}".replace('0', datos.id);
+        $('#eliminarForm').attr('action', urlEliminar);
+        
+        // 4. Mostrar el modal
+        if (!eliminarModal) {
+            eliminarModal = new bootstrap.Modal(document.getElementById('eliminarModal'));
+        }
+        eliminarModal.show();
+        
+        return false;
+    });
+    
+    // ============================================
+    // 4. CONFIRMACIÓN ADICIONAL AL ELIMINAR
+    // ============================================
+    
+    $('#eliminarForm').on('submit', function(event) {
+        // Obtener datos del archivo actual
+        var $form = $(this);
+        var url = $form.attr('action');
+        var archivoId = url.split('/').filter(Boolean).pop();
+        
+        // Buscar el botón correspondiente para obtener el nombre
+        var $botonCorrespondiente = $('.btn-eliminar[data-archivo-id="' + archivoId + '"]').first();
+        var nombreArchivo = $botonCorrespondiente.data('archivo-nombre') || 'el archivo';
+        
+        // Mostrar confirmación
+        var confirmacion = confirm(
+            '⚠️ CONFIRMACIÓN FINAL ⚠️\n\n' +
+            'Vas a eliminar permanentemente:\n' +
+            '• Archivo: ' + nombreArchivo + '\n' +
+            '• Todos sus registros asociados\n\n' +
+            '¿Estás completamente seguro?\n' +
+            'Esta acción NO se puede deshacer.'
+        );
+        
+        if (!confirmacion) {
+            event.preventDefault();
+            // Cerrar modal si existe
+            if (eliminarModal) {
+                eliminarModal.hide();
+            }
+            return false;
+        }
+        
+        // Si confirma, mostrar mensaje de carga
+        $(this).find('button[type="submit"]')
+            .prop('disabled', true)
+            .html('<i class="fas fa-spinner fa-spin me-2"></i>Eliminando...');
+        
+        return true;
+    });
+    
+    // ============================================
+    // 5. LIMPIAR MODAL AL CERRAR
+    // ============================================
+    
+    $('#eliminarModal').on('hidden.bs.modal', function() {
+        // Restaurar botón de eliminar
+        $('#eliminarForm button[type="submit"]')
+            .prop('disabled', false)
+            .html('<i class="fas fa-trash me-2"></i>Eliminar Permanentemente');
+        
+        // Limpiar URL del formulario
+        $('#eliminarForm').attr('action', '');
+    });
+    
+    // ============================================
+    // 6. FUNCIONES AUXILIARES
+    // ============================================
+    
+    // Función para escapar HTML (seguridad)
+    function escapeHTML(text) {
+        if (!text) return '';
+        return text.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+    
+    // Función para mostrar errores
+    function mostrarError(mensaje) {
+        alert('Error: ' + mensaje);
+    }
+    
+    // ============================================
+    // 7. PAGINACIÓN MEJORADA
+    // ============================================
+    
+    // Agregar animación suave a los enlaces de paginación
+    $('.pagination a').on('click', function(e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        if (url && url !== '#') {
+            // Agregar efecto de carga
+            $('.card-body').addClass('loading');
+            window.location.href = url;
+        }
+    });
+    
+    // ============================================
+    // 8. MEJORAS DE UX
+    // ============================================
+    
+    // Efecto hover en las cards
+    $('.file-card').hover(
+        function() {
+            $(this).css({
+                'transform': 'translateY(-4px)',
+                'box-shadow': '0 8px 25px rgba(0,0,0,0.1)',
+                'transition': 'all 0.3s ease'
+            });
+        },
+        function() {
+            $(this).css({
+                'transform': 'translateY(0)',
+                'box-shadow': '0 .125rem .25rem rgba(0,0,0,.075)'
+            });
+        }
+    );
+    
+    // Asegurar que los tooltips se destruyan al cambiar de página
+    $(window).on('beforeunload', function() {
+        $('[data-bs-toggle="tooltip"]').tooltip('dispose');
+    });
+    
+    console.log('Sistema ICI - Archivos Procesados inicializado correctamente');
+});
+</script>
+
+<style>
+/* Estilos adicionales para mejor UX */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mejora visual para el modal de eliminar */
+#eliminarModal .modal-content {
+    border: 2px solid #dc3545;
+}
+
+#eliminarModal .modal-header {
+    background-color: #dc3545;
+    color: white;
+}
+
+#eliminarModal .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+#eliminarModal .btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+</style>
+{% endblock %}

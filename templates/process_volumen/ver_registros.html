@@ -1,0 +1,698 @@
+<!-- templates/ver_registros.html -->
+{% extends 'dashboard.html' %}
+
+{% block title %}Registros del Archivo - Sistema ICI{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2">📋 Registros del Archivo</h1>
+            <p class="text-muted mb-0">
+                Visualizando registros del archivo: <strong>{{ archivo.nombre_archivo }}</strong>
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'archivos_procesados' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+            <a href="{% url 'exportar_archivo' archivo.id %}" class="btn btn-primary">
+                <i class="fas fa-download me-2"></i>Exportar
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del archivo -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Información del Archivo</h6>
+                    <div class="row mb-2">
+                        <div class="col-4 fw-bold">Nombre:</div>
+                        <div class="col-8">{{ archivo.nombre_archivo }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-4 fw-bold">Usuario:</div>
+                        <div class="col-8">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-light rounded-circle me-2">
+                                    <span class="avatar-title text-dark fw-bold">
+                                        {{ archivo.usuario.username|first|upper }}
+                                    </span>
+                                </div>
+                                {{ archivo.usuario.username }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-4 fw-bold">Fecha de Carga:</div>
+                        <div class="col-8">{{ archivo.created_at|date:"d/m/Y H:i:s" }}</div>
+                    </div>
+                    {% if archivo.archivo_principal %}
+                    <div class="row mb-2">
+                        <div class="col-4 fw-bold">Archivo Principal:</div>
+                        <div class="col-8">{{ archivo.archivo_principal }}</div>
+                    </div>
+                    {% endif %}
+                    {% if archivo.version_formdet %}
+                    <div class="row mb-2">
+                        <div class="col-4 fw-bold">Versión FormDet:</div>
+                        <div class="col-8">{{ archivo.version_formdet }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Resumen de Registros</h6>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <div class="card border-0 bg-primary bg-opacity-10 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="h4 mb-0 text-primary">{{ total_formdet }}</div>
+                                    <small class="text-muted">FormDet</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="card border-0 bg-success bg-opacity-10 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="h4 mb-0 text-success">{{ total_ime1 }}</div>
+                                    <small class="text-muted">IME1</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 bg-info bg-opacity-10 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="h4 mb-0 text-info">{{ total_imed2 }}</div>
+                                    <small class="text-muted">IMED2</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 bg-warning bg-opacity-10 h-100">
+                                <div class="card-body text-center py-3">
+                                    <div class="h4 mb-0 text-warning">{{ total_imed3 }}</div>
+                                    <small class="text-muted">IMED3</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas para diferentes tipos de registros -->
+    <div class="card border-0 shadow">
+        <div class="card-header bg-white border-0 pt-3">
+            <ul class="nav nav-tabs nav-tabs-custom" id="registrosTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'formdet' or not active_tab %}active{% endif %}" 
+                            id="formdet-tab" data-bs-toggle="tab" data-bs-target="#formdet" 
+                            type="button" role="tab">
+                        <i class="fas fa-table me-2"></i>FormDet
+                        <span class="badge bg-primary ms-2">{{ total_formdet }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'ime1' %}active{% endif %}" 
+                            id="ime1-tab" data-bs-toggle="tab" data-bs-target="#ime1" 
+                            type="button" role="tab">
+                        <i class="fas fa-chart-bar me-2"></i>IME1
+                        <span class="badge bg-success ms-2">{{ total_ime1 }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'imed2' %}active{% endif %}" 
+                            id="imed2-tab" data-bs-toggle="tab" data-bs-target="#imed2" 
+                            type="button" role="tab">
+                        <i class="fas fa-receipt me-2"></i>IMED2
+                        <span class="badge bg-info ms-2">{{ total_imed2 }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'imed3' %}active{% endif %}" 
+                            id="imed3-tab" data-bs-toggle="tab" data-bs-target="#imed3" 
+                            type="button" role="tab">
+                        <i class="fas fa-truck me-2"></i>IMED3
+                        <span class="badge bg-warning ms-2">{{ total_imed3 }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="tab-content" id="registrosTabContent">
+                <!-- Pestaña FormDet -->
+                <div class="tab-pane fade {% if active_tab == 'formdet' or not active_tab %}show active{% endif %}" 
+                     id="formdet" role="tabpanel">
+                    {% if registros_formdet %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>CODIGO_EJE</th>
+                                    <th>CODIGO_PRE</th>
+                                    <th>ANNOMES</th>
+                                    <th>CODIGO_MED</th>
+                                    <th>SALDO</th>
+                                    <th>TOTAL</th>
+                                    <th>TIPSUM</th>
+                                    <th>PRECIO</th>
+                                    <th>FEC_EXP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros_formdet %}
+                                <tr>
+                                    <td class="fw-bold">{{ forloop.counter }}</td>
+                                    <td>{{ registro.CODIGO_EJE }}</td>
+                                    <td>{{ registro.CODIGO_PRE }}</td>
+                                    <td>{{ registro.ANNOMES }}</td>
+                                    <td>{{ registro.CODIGO_MED }}</td>
+                                    <td class="text-end">{{ registro.SALDO|default:"0.00" }}</td>
+                                    <td class="text-end">{{ registro.TOTAL|default:"0.00" }}</td>
+                                    <td>{{ registro.TIPSUM }}</td>
+                                    <td class="text-end">{{ registro.PRECIO|default:"0.00" }}</td>
+                                    <td>{{ registro.FEC_EXP|date:"d/m/Y"|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación FormDet -->
+                    {% if registros_formdet.has_other_pages %}
+                    <div class="card-footer bg-white py-3">
+                        <nav aria-label="Paginación FormDet">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if registros_formdet.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=formdet&page_formdet=1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=formdet&page_formdet={{ registros_formdet.previous_page_number }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in registros_formdet.paginator.page_range %}
+                                    {% if registros_formdet.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > registros_formdet.number|add:'-3' and num < registros_formdet.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=formdet&page_formdet={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if registros_formdet.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=formdet&page_formdet={{ registros_formdet.next_page_number }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=formdet&page_formdet={{ registros_formdet.paginator.num_pages }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-center text-muted mt-2">
+                                Página {{ registros_formdet.number }} de {{ registros_formdet.paginator.num_pages }} 
+                                - Mostrando {{ registros_formdet|length }} de {{ total_formdet }} registros
+                            </div>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-table fa-3x mb-3"></i>
+                            <h5>No hay registros FormDet</h5>
+                            <p class="mb-0">Este archivo no contiene registros de tipo FormDet</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Pestaña IME1 -->
+                <div class="tab-pane fade {% if active_tab == 'ime1' %}show active{% endif %}" 
+                     id="ime1" role="tabpanel">
+                    {% if registros_ime1 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>ANNOMES</th>
+                                    <th>CODIGO_EJE</th>
+                                    <th>CODIGO_PRE</th>
+                                    <th>IMPVTAS</th>
+                                    <th>IMPCREDH</th>
+                                    <th>IMPSOAT</th>
+                                    <th>IMPSIS</th>
+                                    <th>FECHREG</th>
+                                    <th>USUARIO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros_ime1 %}
+                                <tr>
+                                    <td class="fw-bold">{{ forloop.counter }}</td>
+                                    <td>{{ registro.ANNOMES }}</td>
+                                    <td>{{ registro.CODIGO_EJE }}</td>
+                                    <td>{{ registro.CODIGO_PRE }}</td>
+                                    <td class="text-end">{{ registro.IMPVTAS|default:"0.00" }}</td>
+                                    <td class="text-end">{{ registro.IMPCREDH|default:"0.00" }}</td>
+                                    <td class="text-end">{{ registro.IMPSOAT|default:"0.00" }}</td>
+                                    <td class="text-end">{{ registro.IMPSIS|default:"0.00" }}</td>
+                                    <td>{{ registro.FECHREG|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ registro.USUARIO|default:"SISTEMA" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación IME1 -->
+                    {% if registros_ime1.has_other_pages %}
+                    <div class="card-footer bg-white py-3">
+                        <nav aria-label="Paginación IME1">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if registros_ime1.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=ime1&page_ime1=1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=ime1&page_ime1={{ registros_ime1.previous_page_number }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in registros_ime1.paginator.page_range %}
+                                    {% if registros_ime1.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > registros_ime1.number|add:'-3' and num < registros_ime1.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=ime1&page_ime1={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if registros_ime1.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=ime1&page_ime1={{ registros_ime1.next_page_number }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=ime1&page_ime1={{ registros_ime1.paginator.num_pages }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-center text-muted mt-2">
+                                Página {{ registros_ime1.number }} de {{ registros_ime1.paginator.num_pages }} 
+                                - Mostrando {{ registros_ime1|length }} de {{ total_ime1 }} registros
+                            </div>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                            <h5>No hay registros IME1</h5>
+                            <p class="mb-0">Este archivo no contiene registros de tipo IME1</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Pestaña IMED2 -->
+                <div class="tab-pane fade {% if active_tab == 'imed2' %}show active{% endif %}" 
+                     id="imed2" role="tabpanel">
+                    {% if registros_imed2 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>ANNOMES</th>
+                                    <th>CODIGO_EJE</th>
+                                    <th>CODIGO_PRE</th>
+                                    <th>FECHDEPO</th>
+                                    <th>NRODEPO</th>
+                                    <th>IMPDEPO</th>
+                                    <th>Fecha de Registro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros_imed2 %}
+                                <tr>
+                                    <td class="fw-bold">{{ forloop.counter }}</td>
+                                    <td>{{ registro.ANNOMES }}</td>
+                                    <td>{{ registro.CODIGO_EJE }}</td>
+                                    <td>{{ registro.CODIGO_PRE }}</td>
+                                    <td>{{ registro.FECHDEPO|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ registro.NRODEPO }}</td>
+                                    <td class="text-end">{{ registro.IMPDEPO|default:"0.00" }}</td>
+                                    <td>{{ registro.created_at|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación IMED2 -->
+                    {% if registros_imed2.has_other_pages %}
+                    <div class="card-footer bg-white py-3">
+                        <nav aria-label="Paginación IMED2">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if registros_imed2.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed2&page_imed2=1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed2&page_imed2={{ registros_imed2.previous_page_number }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in registros_imed2.paginator.page_range %}
+                                    {% if registros_imed2.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > registros_imed2.number|add:'-3' and num < registros_imed2.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=imed2&page_imed2={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if registros_imed2.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed2&page_imed2={{ registros_imed2.next_page_number }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed2&page_imed2={{ registros_imed2.paginator.num_pages }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-center text-muted mt-2">
+                                Página {{ registros_imed2.number }} de {{ registros_imed2.paginator.num_pages }} 
+                                - Mostrando {{ registros_imed2|length }} de {{ total_imed2 }} registros
+                            </div>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-receipt fa-3x mb-3"></i>
+                            <h5>No hay registros IMED2</h5>
+                            <p class="mb-0">Este archivo no contiene registros de tipo IMED2</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Pestaña IMED3 -->
+                <div class="tab-pane fade {% if active_tab == 'imed3' %}show active{% endif %}" 
+                     id="imed3" role="tabpanel">
+                    {% if registros_imed3 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>ANNOMES</th>
+                                    <th>CODIGO_EJE</th>
+                                    <th>CODIGO_PRE</th>
+                                    <th>FECHGUIA</th>
+                                    <th>NROGUIA</th>
+                                    <th>IMPGUIA</th>
+                                    <th>Fecha de Registro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros_imed3 %}
+                                <tr>
+                                    <td class="fw-bold">{{ forloop.counter }}</td>
+                                    <td>{{ registro.ANNOMES }}</td>
+                                    <td>{{ registro.CODIGO_EJE }}</td>
+                                    <td>{{ registro.CODIGO_PRE }}</td>
+                                    <td>{{ registro.FECHGUIA|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ registro.NROGUIA }}</td>
+                                    <td class="text-end">{{ registro.IMPGUIA|default:"0.00" }}</td>
+                                    <td>{{ registro.created_at|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación IMED3 -->
+                    {% if registros_imed3.has_other_pages %}
+                    <div class="card-footer bg-white py-3">
+                        <nav aria-label="Paginación IMED3">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if registros_imed3.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed3&page_imed3=1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed3&page_imed3={{ registros_imed3.previous_page_number }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in registros_imed3.paginator.page_range %}
+                                    {% if registros_imed3.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > registros_imed3.number|add:'-3' and num < registros_imed3.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?tab=imed3&page_imed3={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if registros_imed3.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed3&page_imed3={{ registros_imed3.next_page_number }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?tab=imed3&page_imed3={{ registros_imed3.paginator.num_pages }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            <div class="text-center text-muted mt-2">
+                                Página {{ registros_imed3.number }} de {{ registros_imed3.paginator.num_pages }} 
+                                - Mostrando {{ registros_imed3|length }} de {{ total_imed3 }} registros
+                            </div>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="text-muted">
+                            <i class="fas fa-truck fa-3x mb-3"></i>
+                            <h5>No hay registros IMED3</h5>
+                            <p class="mb-0">Este archivo no contiene registros de tipo IMED3</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones adicionales -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-download me-2"></i>Exportar Datos</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'exportar_archivo' archivo.id %}?tipo=formdet" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-file-excel me-2"></i>FormDet CSV
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'exportar_archivo' archivo.id %}?tipo=completo" class="btn btn-outline-success w-100">
+                                <i class="fas fa-file-archive me-2"></i>Todos los Datos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Resumen Estadístico</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 text-center">
+                            <div class="h4 mb-1">{{ total_formdet }}</div>
+                            <small class="text-muted">Total FormDet</small>
+                        </div>
+                        <div class="col-6 text-center">
+                            <div class="h4 mb-1">{{ total_registros }}</div>
+                            <small class="text-muted">Total Registros</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.nav-tabs-custom .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    margin-bottom: -1px;
+}
+
+.nav-tabs-custom .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    background-color: transparent;
+}
+
+.nav-tabs-custom .nav-link:hover {
+    color: #0d6efd;
+    border-bottom-color: rgba(13, 110, 253, 0.2);
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.page-link {
+    border-radius: 4px;
+    margin: 0 2px;
+    border: none;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+.text-end {
+    text-align: right;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activar pestaña según parámetro URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    if (tabParam) {
+        const tabElement = document.getElementById(`${tabParam}-tab`);
+        if (tabElement) {
+            const tab = new bootstrap.Tab(tabElement);
+            tab.show();
+        }
+    }
+    
+    // Actualizar URL cuando se cambia de pestaña
+    const tabTriggers = document.querySelectorAll('#registrosTab button[data-bs-toggle="tab"]');
+    tabTriggers.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(event) {
+            const tabId = event.target.getAttribute('id').replace('-tab', '');
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabId);
+            // Mantener parámetros de paginación solo para la pestaña activa
+            url.searchParams.delete('page_formdet');
+            url.searchParams.delete('page_ime1');
+            url.searchParams.delete('page_imed2');
+            url.searchParams.delete('page_imed3');
+            window.history.replaceState({}, '', url);
+        });
+    });
+    
+    // Tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Bootstrap 5 JS Bundle con Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Font Awesome -->
+<script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+{% endblock %}

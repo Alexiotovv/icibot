@@ -1,0 +1,402 @@
+    <!-- templates/process_volumen/subir_archivo.html -->
+    {% extends 'dashboard.html' %}
+
+    {% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-upload me-2"></i>
+                            Subir Archivo ZIP
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Alertas -->
+                        <div id="alert-container">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Formulario -->
+                        <form id="uploadForm" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="upload">
+                            
+                            <div class="mb-3">
+                                <label for="archivo_zip" class="form-label fw-bold">
+                                    <i class="fas fa-file-archive me-1"></i>
+                                    Seleccionar archivo ZIP principal
+                                </label>
+                                <input type="file" class="form-control" id="archivo_zip" 
+                                    name="archivo_zip" accept=".zip" required>
+                                <div class="form-text">
+                                    El archivo debe contener ZIPs internos con archivos .dbf
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-bold">
+                                    <i class="fas fa-key me-1"></i>
+                                    Contraseña de los sub-zip
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" 
+                                        name="password" value="VEINTE4512" required>
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            onclick="togglePassword()">
+                                        <i class="fas fa-eye" id="toggleIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Contraseña requerida para descomprimir los archivos ZIP internos
+                                </div>
+                            </div>
+                            
+                            <!-- Progress bar (oculto inicialmente) -->
+                            <div id="progress-container" class="mb-3" style="display: none;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <small id="progress-text">Iniciando procesamiento...</small>
+                                    <small id="progress-percent">0%</small>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                        role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <div class="mt-2 text-center">
+                                    <small id="progress-details" class="text-muted"></small>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{% url 'archivos_procesados' %}" class="btn btn-outline-secondary me-md-2">
+                                    <i class="fas fa-times me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-upload me-1"></i> Procesar Archivo
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Resultados (oculto inicialmente) -->
+                        <div id="resultados-container" class="mt-4" style="display: none;">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Resultados del Procesamiento
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="resultados-detalle"></div>
+                                    <div class="text-center mt-3">
+                                        <a href="{% url 'archivos_procesados' %}" class="btn btn-primary">
+                                            <i class="fas fa-list me-1"></i> Ver Archivos Procesados
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Variables globales
+    let isProcessing = false;
+    let progressInterval;
+    let startTime;
+
+    // Mostrar/ocultar contraseña
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.classList.remove('fa-eye');
+            toggleIcon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.classList.remove('fa-eye-slash');
+            toggleIcon.classList.add('fa-eye');
+        }
+    }
+
+    // Mostrar alerta
+    function showAlert(message, type = 'info') {
+        const container = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        container.innerHTML = '';
+        container.appendChild(alert);
+    }
+
+    // Actualizar barra de progreso
+    function updateProgress(percent, text, details = '') {
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressText = document.getElementById('progress-text');
+        const progressDetails = document.getElementById('progress-details');
+        
+        progressBar.style.width = percent + '%';
+        progressPercent.textContent = percent + '%';
+        progressText.textContent = text;
+        progressDetails.textContent = details;
+        
+        // Cambiar color según progreso
+        if (percent < 30) {
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
+        } else if (percent < 70) {
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-info';
+        } else {
+            progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated bg-success';
+        }
+    }
+
+    // Mostrar contenedor de progreso
+    function showProgress() {
+        document.getElementById('progress-container').style.display = 'block';
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Procesando...';
+        
+        // Iniciar temporizador
+        startTime = new Date();
+        
+        // Simular progreso (será sobreescrito por las actualizaciones reales)
+        let simulatedPercent = 0;
+        progressInterval = setInterval(() => {
+            if (simulatedPercent < 95) {
+                simulatedPercent += 2;
+                const elapsed = Math.floor((new Date() - startTime) / 1000);
+                updateProgress(
+                    simulatedPercent, 
+                    'Procesando archivos...', 
+                    `Tiempo transcurrido: ${elapsed} segundos`
+                );
+            }
+        }, 1000);
+    }
+
+    // Ocultar progreso
+    function hideProgress() {
+        if (progressInterval) {
+            clearInterval(progressInterval);
+        }
+        document.getElementById('progress-container').style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-upload me-1"></i> Procesar Archivo';
+    }
+
+    // Mostrar resultados
+    function showResultados(resultados) {
+        const container = document.getElementById('resultados-container');
+        const detalle = document.getElementById('resultados-detalle');
+        
+        const elapsed = Math.floor((new Date() - startTime) / 1000);
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Estadísticas:</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>ZIPs procesados:</span>
+                            <span class="fw-bold">${resultados.zips_procesados || 0}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Archivos DBF:</span>
+                            <span class="fw-bold">${resultados.total_dbf || 0}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Registros FormDet:</span>
+                            <span class="fw-bold">${resultados.formdet_registros || 0}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Registros IME1:</span>
+                            <span class="fw-bold">${resultados.ime1_registros || 0}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Registros IMED2:</span>
+                            <span class="fw-bold">${resultados.imed2_registros || 0}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Registros IMED3:</span>
+                            <span class="fw-bold">${resultados.imed3_registros || 0}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Resumen:</h6>
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Procesamiento completado</strong>
+                        <p class="mb-0 mt-2">Tiempo total: ${elapsed} segundos</p>
+                    </div>
+        `;
+        
+        if (resultados.zips_con_error && resultados.zips_con_error > 0) {
+            html += `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Algunos archivos tuvieron errores:</strong>
+                        <p class="mb-0 mt-2">${resultados.zips_con_error} ZIPs no pudieron procesarse</p>
+                    </div>
+            `;
+        }
+        
+        html += `</div></div>`;
+        
+        detalle.innerHTML = html;
+        container.style.display = 'block';
+        
+        // Hacer scroll suave a los resultados
+        setTimeout(() => {
+            container.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+    }
+
+    // Manejar envío del formulario con AJAX
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (isProcessing) {
+            showAlert('Ya hay un procesamiento en curso', 'warning');
+            return;
+        }
+        
+        isProcessing = true;
+        
+        const formData = new FormData(this);
+        
+        // Validar que se haya seleccionado archivo
+        const archivoInput = document.getElementById('archivo_zip');
+        if (!archivoInput.files || archivoInput.files.length === 0) {
+            showAlert('Debe seleccionar un archivo ZIP', 'danger');
+            isProcessing = false;
+            return;
+        }
+        
+        // Validar contraseña
+        const passwordInput = document.getElementById('password');
+        if (!passwordInput.value.trim()) {
+            showAlert('Debe ingresar la contraseña', 'danger');
+            isProcessing = false;
+            return;
+        }
+        
+        // Mostrar progreso
+        showProgress();
+        showAlert('Iniciando procesamiento del archivo...', 'info');
+        
+        try {
+            // Enviar con AJAX
+            const response = await fetch('{% url "procesar_archivo" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            
+            // Actualizar progreso al 100%
+            updateProgress(100, 'Procesamiento completado', '¡Todo listo!');
+            
+            if (data.success) {
+                showAlert(data.message, 'success');
+                if (data.resultados) {
+                    showResultados(data.resultados);
+                }
+            } else {
+                showAlert(data.message, 'danger');
+            }
+            
+        } catch (error) {
+            updateProgress(0, 'Error de conexión', 'No se pudo contactar al servidor');
+            showAlert('Error de conexión: ' + error.message, 'danger');
+        } finally {
+            // Ocultar progreso después de 2 segundos
+            setTimeout(() => {
+                hideProgress();
+                isProcessing = false;
+            }, 2000);
+        }
+    });
+
+    // Auto-ocultar alertas después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+    });
+    </script>
+
+    <style>
+    .progress {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .progress-bar {
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .list-group-item {
+        border: none;
+        padding: 0.75rem 0;
+    }
+
+    .btn {
+        border-radius: 5px;
+        padding: 0.5rem 1.5rem;
+    }
+
+    #alert-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        max-width: 400px;
+    }
+
+    @media (max-width: 768px) {
+        #alert-container {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+        }
+    }
+    </style>
+    {% endblock %}

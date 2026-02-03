@@ -1,0 +1,51 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Lista de Enlaces</h3>
+    <a href="{% url 'crear_enlace' %}" class="btn btn-light mb-2">Nuevo Enlace</a>
+    <table id="tablaEnlaces" class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>Nombre</th>
+                <th>URL</th>
+                <th>Token</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for enlace in enlaces %}
+            <tr>
+                <td>{{ enlace.nombre }}</td>
+                <td><a href="{{ enlace.url }}" target="_blank">{{ enlace.url }}</a></td>
+                <td>{{ enlace.token }}</td>
+                <td>
+                    <a href="{% url 'editar_enlace' enlace.id %}" class="btn btn-sm btn-primary">Editar</a>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">No hay enlaces.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+            $('#tablaEnlaces').DataTable({
+                language: {
+                    url: "//cdn.datatables.net/plug-ins/1.13.5/i18n/es-ES.json"
+                }
+            });
+
+    });
+</script>
+{% endblock %}

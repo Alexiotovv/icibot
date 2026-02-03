@@ -1,0 +1,27 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Consultar Archivos</h2>
+
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" >
+        {% csrf_token %}
+        <div class="row mb-3">
+            <div class="col">
+                <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control" required>
+            </div>
+            <div class="col">
+                <label for="fecha_final" class="form-label">Fecha Final</label>
+                <input type="date" name="fecha_final" id="fecha_final" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Consultar y Descargar</button>
+    </form>
+</div>
+{% endblock %}

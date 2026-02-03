@@ -1,0 +1,23 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>{% if enlace %}Editar{% else %}Nuevo{% endif %} Enlace</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label>Nombre</label>
+            <input type="text" name="nombre" class="form-control" value="{{ enlace.nombre|default:'' }}" required>
+        </div>
+        <div class="mb-3">
+            <label>URL</label>
+            <input type="url" name="url" class="form-control" value="{{ enlace.url|default:'' }}" required>
+        </div>
+        <div class="mb-3">
+            <label>Token</label>
+            <input type="text" name="token" class="form-control" value="{{ enlace.token|default:'' }}" required>
+        </div>
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <a href="{% url 'lista_enlaces' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

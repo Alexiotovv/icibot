@@ -1,0 +1,51 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg">
+        <div class="card-header">
+            <h5 class="mb-0">Histórico de Procesamientos</h5>
+        </div>
+        <div class="card-body">
+            <table id="historicoTable" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tiempo</th>
+                        <th>Total registros</th>
+                        <th>Guardados</th>
+                        <th>Columnas</th>
+                        <th>TablasGuardadas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in historicos %}
+                    <tr>
+                        <td>{{ h.creado_en|date:"d/m/Y H:i:s" }}</td>
+                        <td>{{ h.tiempo }}</td>
+                        <td>{{ h.total_registros }}</td>
+                        <td>{{ h.guardados }}</td>
+                        <td>{{ h.columnas }}</td>
+                        <td>{{ h.tablas_guardadas }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+
+<script>
+    $(document).ready(function () {
+        $('#historicoTable').DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[0, 'desc']]
+        });
+    });
+</script>
+{% endblock %}

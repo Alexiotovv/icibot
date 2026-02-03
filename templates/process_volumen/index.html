@@ -1,0 +1,122 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block content %}
+    <style>
+    .spinner-border {
+        width: 2rem;
+        height: 2rem;
+    }
+    </style>
+
+    <div id="alert-container" class="mt-3"></div>
+
+    <div class="container mt-5">
+        <div class="card shadow-lg">
+            <div class="card-header">
+                <h5 class="mb-0">Procesar archivo principal.zip</h5>
+            </div>
+            <div class="card-body">
+                <form id="procesarForm" method="post" action="{% url 'procesar_zip_volumen' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="archivo" class="form-label">Selecciona el archivo principal.zip</label>
+                        <input type="file" class="form-control" id="archivo" name="archivo" accept=".zip" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña de los sub-zip</label>
+                        <input type="text" class="form-control" id="password" name="password" value="VEINTE4512" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-outline-success">Procesar ZIP</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block javascript %}
+ 
+<script>
+    $(function () {
+        let timerInterval;
+        let startTime;
+
+        $("#procesarForm").submit(function (e) {
+            e.preventDefault();
+
+            // Reset del alert-container
+            $("#alert-container").html(`
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <div class="spinner-border text-primary me-2" role="status"></div>
+                    <div>
+                        <strong>Espere por favor:</strong> Se está procesando el archivo... <br>
+                        <span id="timer">00:00.000</span>
+                    </div>
+                </div>
+            `);
+
+            // Iniciar cronómetro
+            startTime = new Date().getTime();
+            timerInterval = setInterval(updateTimer, 50);
+
+            // Enviar formulario con AJAX
+            let formData = new FormData(this);
+
+            $.ajax({
+                url: $(this).attr("action"),
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    clearInterval(timerInterval);
+                    let elapsed = getElapsedTime();
+
+                    $("#alert-container").html(`
+                        <div class="alert alert-success" role="alert">
+                            ✅ <strong>Procesado con éxito</strong><br>
+                            ⏱ Tiempo: <b>${elapsed}</b><br>
+                            📂 Total registros: <b>${response.total_registros}</b><br>
+                            💾 Guardados: <b>${response.guardados}</b><br>
+                            🔑 Columnas: ${response.columnas.join(", ")}
+                        </div>
+                    `);
+                },
+                error: function (xhr, status, error) {
+                    clearInterval(timerInterval);
+                    $("#alert-container").html(`
+                        <div class="alert alert-danger" role="alert">
+                            ❌ Error: ${xhr.responseText}
+                        </div>
+                    `);
+                }
+            });
+        });
+
+        function updateTimer() {
+            $("#timer").text(getElapsedTime());
+        }
+
+        function getElapsedTime() {
+            let now = new Date().getTime();
+            let diff = now - startTime;
+
+            let minutes = Math.floor(diff / 60000);
+            let seconds = Math.floor((diff % 60000) / 1000);
+            let milliseconds = diff % 1000;
+
+            return (
+                (minutes < 10 ? "0" : "") + minutes + ":" +
+                (seconds < 10 ? "0" : "") + seconds + "." +
+                ("000" + milliseconds).slice(-3)
+            );
+        }
+    });
+</script>
+
+
+{% endblock javascript %}

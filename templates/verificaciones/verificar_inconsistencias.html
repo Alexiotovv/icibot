@@ -1,0 +1,407 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Verificación de Inconsistencias - Stock vs Saldo{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-search-dollar text-primary me-2"></i>
+                Verificación de Inconsistencias de Stock/Saldo
+            </h1>
+            <p class="text-muted mb-0">Detecta inconsistencias entre STOCKFIN del mes anterior y SALDO del mes actual</p>
+        </div>
+        <div>
+            <a href="{% url 'verificaciones:ejecutar_verificacion' %}" class="btn btn-primary">
+                <i class="fas fa-play-circle me-2"></i>Ejecutar Verificación
+            </a>
+            <a href="{% url 'verificaciones:exportar' %}" class="btn btn-success">
+                <i class="fas fa-download me-2"></i>Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="{{ form.CODIGO_PRE.id_for_label }}" class="form-label">{{ form.CODIGO_PRE.label }}</label>
+                    {{ form.CODIGO_PRE }}
+                </div>
+                <div class="col-md-3">
+                    <label for="{{ form.CODIGO_MED.id_for_label }}" class="form-label">{{ form.CODIGO_MED.label }}</label>
+                    {{ form.CODIGO_MED }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ form.ANNOMES_inicio.id_for_label }}" class="form-label">{{ form.ANNOMES_inicio.label }}</label>
+                    {{ form.ANNOMES_inicio }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ form.ANNOMES_fin.id_for_label }}" class="form-label">{{ form.ANNOMES_fin.label }}</label>
+                    {{ form.ANNOMES_fin }}
+                </div>
+                <div class="col-md-2">
+                    <label for="{{ form.severidad.id_for_label }}" class="form-label">{{ form.severidad.label }}</label>
+                    {{ form.severidad }}
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check">
+                        {{ form.solo_no_resueltas }}
+                        <label class="form-check-label" for="{{ form.solo_no_resueltas.id_for_label }}">
+                            {{ form.solo_no_resueltas.label }}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                    <a href="{% url 'verificaciones:verificar_inconsistencias' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    {% if estadisticas.total > 0 %}
+    <div class="row mb-4">
+        <!-- Tarjeta Resumen -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Inconsistencias
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ estadisticas.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Por Severidad -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Severidad Alta
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% for stat in estadisticas.por_severidad %}
+                                    {% if stat.severidad == 'alta' %}{{ stat.total }}{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-skull-crossbones fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Por Tipo -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Inconsistencias Stock-Saldo
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% for stat in estadisticas.por_tipo %}
+                                    {% if stat.tipo == 'stock_saldo' %}{{ stat.total }}{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-balance-scale fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registros Analizados -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Establecimientos con Inconsistencias
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ resumen_codigo_pre|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hospital fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Resumen por CODIGO_PRE -->
+    {% if resumen_codigo_pre %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-hospital me-2"></i>Resumen por Establecimiento (CODIGO_PRE)
+            </h6>
+            <span class="badge bg-primary">Top {{ resumen_codigo_pre|length }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTableResumen" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>CODIGO_PRE</th>
+                            <th>Total Inconsistencias</th>
+                            <th>Diferencia Promedio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resumen in resumen_codigo_pre %}
+                        <tr>
+                            <td>
+                                <strong>{{ resumen.CODIGO_PRE }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge {% if resumen.total > 10 %}bg-danger{% elif resumen.total > 5 %}bg-warning{% else %}bg-info{% endif %}">
+                                    {{ resumen.total }} inconsistencias
+                                </span>
+                            </td>
+                            <td>
+                                {% if resumen.diferencia_promedio %}
+                                    {{ resumen.diferencia_promedio|floatformat:2 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'verificaciones:verificar_inconsistencias' %}?CODIGO_PRE={{ resumen.CODIGO_PRE }}&solo_no_resueltas=on" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-search me-1"></i>Ver Detalles
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de Inconsistencias -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list-alt me-2"></i>Inconsistencias Detectadas
+            </h6>
+            <span class="badge bg-primary">{{ inconsistencias|length }} registros</span>
+        </div>
+        <div class="card-body">
+            {% if inconsistencias %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>CODIGO_PRE</th>
+                            <th>CODIGO_MED</th>
+                            <th>MEDLOTE</th>
+                            <th>FFINAN</th>
+                            <th>TIPSUM2</th>
+                            <th>MEDFECHVTO</th>
+                            <th>MEDREGSAN</th>
+                            <th>Mes Anterior</th>
+                            <th>Mes Actual</th>
+                            <th>STOCKFIN Anterior</th>
+                            <th>SALDO Actual</th>
+                            <th>Diferencia</th>
+                            <th>Severidad</th>
+                            <th>Fecha Detección</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inc in inconsistencias %}
+                        <tr class="{% if inc.severidad == 'alta' %}table-danger{% elif inc.severidad == 'media' %}table-warning{% endif %}">
+                            <td><strong>{{ inc.CODIGO_PRE }}</strong></td>
+                            <td>{{ inc.CODIGO_MED }}</td>
+                            
+                            <!-- MEDLOTE -->
+                            <td>
+                                {% if inc.MEDLOTE %}
+                                    <span class="badge bg-info" title="Lote del medicamento">
+                                        {{ inc.MEDLOTE }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">SIN_LOTE</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- FFINAN -->
+                            <td>
+                                {% if inc.FFINAN %}
+                                    <span class="badge bg-secondary" title="Financiamiento">
+                                        {{ inc.FFINAN }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">SIN_FFINAN</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- TIPSUM2 -->
+                            <td>
+                                {% if inc.TIPSUM2 %}
+                                    <span class="badge {% if inc.TIPSUM2 == 'CN' %}bg-success{% elif inc.TIPSUM2 == 'SC' %}bg-warning{% else %}bg-primary{% endif %}" 
+                                        title="Tipo de suministro 2">
+                                        {{ inc.TIPSUM2 }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">SIN_TIPSUM2</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- MEDFECHVTO -->
+                            <td>
+                                {% if inc.MEDFECHVTO %}
+                                    <span class="badge bg-dark" title="Fecha de vencimiento">
+                                        {{ inc.MEDFECHVTO|date:"d/m/Y" }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">Sin fecha</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- MEDREGSAN -->
+                            <td>
+                                {% if inc.MEDREGSAN %}
+                                    <span class="badge bg-light text-dark border" title="Registro sanitario">
+                                        {{ inc.MEDREGSAN|truncatechars:10 }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">SIN_REGSAN</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Fechas de meses -->
+                            <td>{{ inc.ANNOMES_anterior }}</td>
+                            <td>{{ inc.ANNOMES_actual }}</td>
+                            
+                            <!-- Valores numéricos -->
+                            <td class="text-end">S/ {{ inc.STOCKFIN_anterior|floatformat:2 }}</td>
+                            <td class="text-end">S/ {{ inc.SALDO_actual|floatformat:2 }}</td>
+                            
+                            <!-- Diferencia -->
+                            <td class="text-end">
+                                <span class="badge {% if inc.diferencia > 1000 %}bg-danger{% elif inc.diferencia > 100 %}bg-warning{% else %}bg-info{% endif %}">
+                                    S/ {{ inc.diferencia|floatformat:2 }}
+                                </span>
+                            </td>
+                            
+                            <!-- Severidad -->
+                            <td>
+                                <span class="badge 
+                                    {% if inc.severidad == 'alta' %}bg-danger
+                                    {% elif inc.severidad == 'media' %}bg-warning
+                                    {% else %}bg-info{% endif %}">
+                                    {{ inc.severidad|title }}
+                                </span>
+                            </td>
+                            
+                            <!-- Fecha detección -->
+                            <td>{{ inc.fecha_deteccion|date:"d/m/Y H:i" }}</td>
+                            
+                            <!-- Estado -->
+                            <td>
+                                {% if inc.resuelta %}
+                                    <span class="badge bg-success">Resuelta</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Acciones -->
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'verificaciones:detalle_inconsistencia' inc.id %}" 
+                                    class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                                        🔍
+                                    </a>
+                                    {% if not inc.resuelta %}
+                                    <form method="post" action="{% url 'verificaciones:marcar_resuelta' inc.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success" 
+                                                title="Marcar como resuelta"
+                                                onclick="return confirm('¿Marcar esta inconsistencia como resuelta?')">
+                                            ✅
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4 class="text-muted">No se encontraron inconsistencias</h4>
+                <p class="text-muted">Utilice los filtros para buscar o ejecute una nueva verificación.</p>
+                <a href="{% url 'verificaciones:ejecutar_verificacion' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-play-circle me-2"></i>Ejecutar Verificación
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- DataTables Script -->
+<script>
+$(document).ready(function() {
+    $('#dataTable').DataTable({
+        "order": [[ 8, "desc" ]], // Ordenar por fecha descendente
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+        },
+        "pageLength": 25
+    });
+    
+    $('#dataTableResumen').DataTable({
+        "order": [[ 1, "desc" ]], // Ordenar por total descendente
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+        },
+        "pageLength": 10
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  {% comment %} <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  {% endcomment %}
+  
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Font (Elegante) -->
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  
+  
+  
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- DataTables + Bootstrap 5 -->
+  <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+  <!-- Toastr CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+
+  
+  
+  <style>
+    body {
+      font-family: 'Rubik', sans-serif;
+    }
+    .sidebar {
+      min-height: 100vh;
+      background-color: #f8f9fa;
+      padding-top: 1rem;
+    }
+    .sidebar .nav-link {
+      color: #333;
+      font-weight: 500;
+    }
+    .sidebar .nav-link:hover {
+      background-color: #e9ecef;
+    }
+    .submenu .nav-link {
+      padding-left: 2rem;
+      font-weight: 400;
+    }
+    .sidebar .collapse .nav-link::before {
+      content: "• ";
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-dark bg-dark px-4">
+    <button class="navbar-toggler d-md-none me-2" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <span class="navbar-brand">Dashboard</span>
+    <div class="ms-auto">
+      <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-light">Salir</button>
+      </form>
+    </div>
+  </nav>
+
+  <!-- Sidebar + Main -->
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" id="sidebarMenu">
+        <ul class="nav flex-column">
+          <!-- Inicio -->
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#menuInicio" role="button" aria-expanded="false" aria-controls="menuInicio">
+              <i class="bi bi-house-door-fill me-2"></i> Inicio
+            </a>
+            <div class="collapse" id="menuInicio">
+              <ul class="nav flex-column submenu ps-3">
+                <li class="nav-item"><a class="nav-link" href="#">Resumen</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Estadísticas</a></li>
+              </ul>
+            </div>
+          </li>
+
+          <!-- Configuraciones -->
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#menuConfig" role="button" aria-expanded="false" aria-controls="menuConfig">
+              <i class="bi bi-gear-fill me-2"></i> Configuraciones
+            </a>
+            <div class="collapse" id="menuConfig">
+              <ul class="nav flex-column submenu ps-3">
+                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'lista_enlaces' %}">EnlacesyToken</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'token_list' %}">EndPointsyToken</a></li>  -->
+                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'consumir_api' %}">Descarga de archivos</a></li> -->
+                <li class="nav-item"><a class="nav-link" href="{% url 'subir_zip_volumen' %}">Procesar Archivos</a></li>
+                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'historico_index' %}">Procesos Históricos</a></li> -->
+                <li class="nav-item"><a class="nav-link" href="{% url 'archivos_procesados' %}">Archivos Procesados</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'verificaciones:verificar_inconsistencias' %}">Verificar Inconsistencias Stock/Saldo</a></li>
+                
+
+                
+                
+              </ul>
+            </div>
+          </li>
+
+          <!-- Bot -->
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#menuBot" role="button" aria-expanded="false" aria-controls="menuBot">
+              <i class="bi bi-robot me-2"></i> Bot
+            </a>
+            <div class="collapse" id="menuBot">
+              <ul class="nav flex-column submenu ps-3">
+                <li class="nav-item"><a class="nav-link" href="#">Respuestas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Entrenamiento</a></li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 mt-4">
+        {% if messages %}
+            <div class="messages-container mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}
+        <h3>¡Bienvenido, {{ request.user.username }}!</h3>
+        <p>Este es tu panel privado.</p>
+        {% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% comment %} <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Scripts JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script> {% endcomment %}
+
+
+
+   <!-- Scripts JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap Bundle (incluye Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
+
+
+  <!-- Toastr JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <script>
+  // Configuración global de Toastr
+  toastr.options = {
+      "closeButton": true,
+      "progressBar": true,
+      "positionClass": "toast-top-right",
+      "timeOut": "5000",
+      "extendedTimeOut": "2000"
+  };
+
+
+  </script>
+
+  <!-- dashboard.html - Antes del cierre del body -->
+  <script>
+    // Función para expandir el menú padre basado en la URL actual
+    function expandParentMenu() {
+      const currentUrl = window.location.pathname;
+      
+      // Buscar enlaces activos
+      document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.href && link.href.includes(currentUrl) && currentUrl !== '/') {
+          link.classList.add('active');
+          
+          // Encontrar el menú padre y expandirlo
+          let parentCollapse = link.closest('.collapse');
+          if (parentCollapse) {
+            const collapseInstance = new bootstrap.Collapse(parentCollapse, {
+              toggle: false
+            });
+            collapseInstance.show();
+            saveMenuState(parentCollapse.id, true);
+          }
+          
+          // También expandir el menú principal
+          const menuButton = link.closest('.collapse').previousElementSibling;
+          if (menuButton && menuButton.getAttribute('data-bs-target')) {
+            const mainMenuId = menuButton.getAttribute('data-bs-target').substring(1);
+            const mainMenuElement = document.getElementById(mainMenuId);
+            if (mainMenuElement) {
+              const mainCollapse = new bootstrap.Collapse(mainMenuElement, {
+                toggle: false
+              });
+              mainCollapse.show();
+              saveMenuState(mainMenuId, true);
+            }
+          }
+        }
+      });
+    }
+    // Función para guardar el estado del menú en localStorage
+    function saveMenuState(menuId, isExpanded) {
+      const menuStates = JSON.parse(localStorage.getItem('menuStates')) || {};
+      menuStates[menuId] = isExpanded;
+      localStorage.setItem('menuStates', JSON.stringify(menuStates));
+    }
+
+    // Función para cargar el estado del menú desde localStorage
+    function loadMenuState() {
+      const menuStates = JSON.parse(localStorage.getItem('menuStates')) || {};
+      
+      // Aplicar estado a cada menú
+      Object.keys(menuStates).forEach(menuId => {
+        const menuElement = document.getElementById(menuId);
+        if (menuElement) {
+          const collapse = new bootstrap.Collapse(menuElement, {
+            toggle: false
+          });
+          
+          if (menuStates[menuId]) {
+            collapse.show();
+          } else {
+            collapse.hide();
+          }
+        }
+      });
+    }
+
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+      // Cargar estado guardado
+      loadMenuState();
+      
+      // Detectar cambios en los menús y guardar estado
+      const menuElements = document.querySelectorAll('.collapse');
+      
+      menuElements.forEach(element => {
+        element.addEventListener('show.bs.collapse', function() {
+          saveMenuState(this.id, true);
+        });
+        
+        element.addEventListener('hide.bs.collapse', function() {
+          saveMenuState(this.id, false);
+        });
+      });
+      
+      // También detectar clics en los enlaces del menú para expandir automáticamente
+      document.querySelectorAll('.nav-link[data-bs-toggle="collapse"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+          const targetId = this.getAttribute('href').substring(1);
+          const targetElement = document.getElementById(targetId);
+          
+          if (targetElement) {
+            const isExpanded = !targetElement.classList.contains('show');
+            saveMenuState(targetId, isExpanded);
+          }
+        });
+      });
+    });
+  </script>
+
+    {% block extra_js %}
+    {% endblock  %}
+
+
+  </body>
+</html>

@@ -1,0 +1,423 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Detalle de Inconsistencia - {{ inconsistencia.CODIGO_PRE }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                Detalle de Inconsistencia
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'verificaciones:verificar_inconsistencias' %}">Verificaciones</a></li>
+                    <li class="breadcrumb-item active">Detalle</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            {% if not inconsistencia.resuelta %}
+            <form method="post" action="{% url 'verificaciones:marcar_resuelta' inconsistencia.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success" 
+                        onclick="return confirm('¿Marcar esta inconsistencia como resuelta?')">
+                    <i class="fas fa-check me-2"></i>Marcar como Resuelta
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'verificaciones:verificar_inconsistencias' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjeta de Información -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Detalles de la Inconsistencia</h6>
+                    <span class="badge bg-{% if inconsistencia.severidad == 'alta' %}danger{% elif inconsistencia.severidad == 'media' %}warning{% else %}info{% endif %}">
+                        {{ inconsistencia.severidad|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Establecimiento (CODIGO_PRE):</strong><br>
+                                <span class="h5">{{ inconsistencia.CODIGO_PRE }}</span>
+                            </p>
+                            <p><strong>Medicamento (CODIGO_MED):</strong><br>
+                                <span class="h5">{{ inconsistencia.CODIGO_MED }}</span>
+                            </p>
+                            <p><strong>Tipo de Inconsistencia:</strong><br>
+                                {{ inconsistencia.get_tipo_display }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Períodos:</strong><br>
+                                <span class="badge bg-secondary">{{ inconsistencia.ANNOMES_anterior }}</span> → 
+                                <span class="badge bg-primary">{{ inconsistencia.ANNOMES_actual }}</span>
+                            </p>
+                            <p><strong>Fecha de Detección:</strong><br>
+                                {{ inconsistencia.fecha_deteccion|date:"d/m/Y H:i" }}
+                            </p>
+                            <p><strong>Estado:</strong><br>
+                                {% if inconsistencia.resuelta %}
+                                    <span class="badge bg-success">Resuelta</span><br>
+                                    <small>{{ inconsistencia.fecha_resolucion|date:"d/m/Y H:i" }}</small>
+                                {% else %}
+                                    <span class="badge bg-warning">Pendiente</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Comparación -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-left-primary shadow h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">
+                                        <i class="fas fa-box me-2"></i>STOCKFIN Mes Anterior
+                                    </h6>
+                                    <div class="h3 text-center my-3">
+                                        {{ inconsistencia.STOCKFIN_anterior|floatformat:2 }}
+                                    </div>
+                                    <p class="text-muted text-center mb-0">Mes: {{ inconsistencia.ANNOMES_anterior }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-left-info shadow h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info">
+                                        <i class="fas fa-coins me-2"></i>SALDO Mes Actual
+                                    </h6>
+                                    <div class="h3 text-center my-3">
+                                        {{ inconsistencia.SALDO_actual|floatformat:2 }}
+                                    </div>
+                                    <p class="text-muted text-center mb-0">Mes: {{ inconsistencia.ANNOMES_actual }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diferencia -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card border-left-{% if inconsistencia.diferencia > 1000 %}danger{% elif inconsistencia.diferencia > 100 %}warning{% else %}info{% endif %} shadow">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-balance-scale me-2"></i>Diferencia
+                                    </h6>
+                                    <div class="text-center">
+                                        <span class="display-4 {% if inconsistencia.diferencia > 1000 %}text-danger{% elif inconsistencia.diferencia > 100 %}text-warning{% else %}text-info{% endif %}">
+                                            {{ inconsistencia.diferencia|floatformat:2 }}
+                                        </span>
+                                        <p class="text-muted mt-2">
+                                            {% if inconsistencia.diferencia > 0 %}
+                                                El SALDO actual no coincide con el STOCKFIN anterior
+                                            {% else %}
+                                                Los valores son consistentes
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Descripción -->
+                    {% if inconsistencia.descripcion %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-info-circle me-2"></i>Descripción
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>{{ inconsistencia.descripcion }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Agrega esta sección en el template de detalle -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-list me-2"></i>Campos de Comparación
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Campo</th>
+                                                    <th>Valor Mes Anterior</th>
+                                                    <th>Valor Mes Actual</th>
+                                                    <th>¿Cambió?</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>MEDLOTE</strong></td>
+                                                    <td>{{ inconsistencia.MEDLOTE_anterior|default:"SIN_LOTE" }}</td>
+                                                    <td>{{ inconsistencia.MEDLOTE_actual|default:"SIN_LOTE" }}</td>
+                                                    <td>
+                                                        {% if inconsistencia.MEDLOTE_anterior == inconsistencia.MEDLOTE_actual %}
+                                                            <span class="badge bg-success">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">Sí</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>FFINAN</strong></td>
+                                                    <td>{{ inconsistencia.FFINAN_anterior|default:"SIN_FFINAN" }}</td>
+                                                    <td>{{ inconsistencia.FFINAN_actual|default:"SIN_FFINAN" }}</td>
+                                                    <td>
+                                                        {% if inconsistencia.FFINAN_anterior == inconsistencia.FFINAN_actual %}
+                                                            <span class="badge bg-success">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">Sí</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>TIPSUM</strong></td>
+                                                    <td>{{ inconsistencia.TIPSUM_anterior|default:"SIN_TIPSUM" }}</td>
+                                                    <td>{{ inconsistencia.TIPSUM_actual|default:"SIN_TIPSUM" }}</td>
+                                                    <td>
+                                                        {% if inconsistencia.TIPSUM_anterior == inconsistencia.TIPSUM_actual %}
+                                                            <span class="badge bg-success">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">Sí</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>MEDFECHVTO</strong></td>
+                                                    <td>{{ inconsistencia.MEDFECHVTO_anterior|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                                                    <td>{{ inconsistencia.MEDFECHVTO_actual|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                                                    <td>
+                                                        {% if inconsistencia.MEDFECHVTO_anterior == inconsistencia.MEDFECHVTO_actual %}
+                                                            <span class="badge bg-success">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">Sí</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>MEDREGSAN</strong></td>
+                                                    <td>{{ inconsistencia.MEDREGSAN_anterior|default:"SIN_REGSAN" }}</td>
+                                                    <td>{{ inconsistencia.MEDREGSAN_actual|default:"SIN_REGSAN" }}</td>
+                                                    <td>
+                                                        {% if inconsistencia.MEDREGSAN_anterior == inconsistencia.MEDREGSAN_actual %}
+                                                            <span class="badge bg-success">No</span>
+                                                        {% else %}
+                                                            <span class="badge bg-warning">Sí</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de Campos de Agrupación -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card shadow">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">
+                                        <i class="fas fa-tags me-2"></i>Campos de Agrupación
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <strong>CODIGO_PRE:</strong>
+                                            <span class="badge bg-primary ms-2">{{ inconsistencia.CODIGO_PRE }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>CODIGO_MED:</strong>
+                                            <span class="badge bg-secondary ms-2">{{ inconsistencia.CODIGO_MED }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>MEDLOTE:</strong>
+                                            <span class="badge bg-info ms-2">{{ inconsistencia.MEDLOTE|default:"SIN_LOTE" }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>FFINAN:</strong>
+                                            <span class="badge bg-dark ms-2">{{ inconsistencia.FFINAN|default:"SIN_FFINAN" }}</span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>TIPSUM2:</strong>
+                                            <span class="badge {% if inconsistencia.TIPSUM2 == 'CN' %}bg-success{% elif inconsistencia.TIPSUM2 == 'SC' %}bg-warning{% else %}bg-primary{% endif %} ms-2">
+                                                {{ inconsistencia.TIPSUM2|default:"SIN_TIPSUM2" }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>MEDFECHVTO:</strong>
+                                            <span class="badge bg-light text-dark border ms-2">
+                                                {{ inconsistencia.MEDFECHVTO|date:"d/m/Y"|default:"Sin fecha" }}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <strong>MEDREGSAN:</strong>
+                                            <span class="badge bg-light text-dark border ms-2">
+                                                {{ inconsistencia.MEDREGSAN|default:"SIN_REGSAN" }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Acciones -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-cogs me-2"></i>Acciones
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if registro_actual %}
+                        <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalRegistroActual">
+                            <i class="fas fa-file-alt me-2"></i>Ver Registro Actual
+                        </a>
+                        {% endif %}
+                        
+                        {% if registro_anterior %}
+                        <a href="#" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalRegistroAnterior">
+                            <i class="fas fa-file-archive me-2"></i>Ver Registro Anterior
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'verificaciones:verificar_inconsistencias' %}?CODIGO_PRE={{ inconsistencia.CODIGO_PRE }}&CODIGO_MED={{ inconsistencia.CODIGO_MED }}" 
+                           class="btn btn-outline-info">
+                            <i class="fas fa-search me-2"></i>Buscar Similares
+                        </a>
+                        
+                        {% if inconsistencia.archivo_procesado %}
+                        <a href="#" class="btn btn-outline-warning">
+                            <i class="fas fa-archive me-2"></i>Ver Archivo
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial -->
+            {% if historial %}
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-2"></i>Historial (Últimos 12 meses)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>STOCKFIN</th>
+                                    <th>SALDO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reg in historial %}
+                                <tr {% if reg.ANNOMES == inconsistencia.ANNOMES_actual %}class="table-primary"{% endif %}>
+                                    <td>{{ reg.ANNOMES }}</td>
+                                    <td class="text-end">{{ reg.STOCKFIN|floatformat:2 }}</td>
+                                    <td class="text-end">{{ reg.SALDO|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Modales para mostrar registros -->
+{% if registro_actual %}
+<div class="modal fade" id="modalRegistroActual" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registro Actual - {{ registro_actual.ANNOMES }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tr><th>CODIGO_EJE</th><td>{{ registro_actual.CODIGO_EJE }}</td></tr>
+                        <tr><th>TIPSUM</th><td>{{ registro_actual.TIPSUM }}</td></tr>
+                        <tr><th>SALDO</th><td class="text-end">{{ registro_actual.SALDO|floatformat:2 }}</td></tr>
+                        <tr><th>STOCKFIN</th><td class="text-end">{{ registro_actual.STOCKFIN|floatformat:2 }}</td></tr>
+                        <tr><th>INGRE</th><td class="text-end">{{ registro_actual.INGRE|floatformat:2 }}</td></tr>
+                        <tr><th>VENTA</th><td class="text-end">{{ registro_actual.VENTA|floatformat:2 }}</td></tr>
+                        <!-- Agrega más campos según necesites -->
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if registro_anterior %}
+<div class="modal fade" id="modalRegistroAnterior" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registro Anterior - {{ registro_anterior.ANNOMES }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tr><th>CODIGO_EJE</th><td>{{ registro_anterior.CODIGO_EJE }}</td></tr>
+                        <tr><th>TIPSUM</th><td>{{ registro_anterior.TIPSUM }}</td></tr>
+                        <tr><th>SALDO</th><td class="text-end">{{ registro_anterior.SALDO|floatformat:2 }}</td></tr>
+                        <tr><th>STOCKFIN</th><td class="text-end">{{ registro_anterior.STOCKFIN|floatformat:2 }}</td></tr>
+                        <tr><th>INGRE</th><td class="text-end">{{ registro_anterior.INGRE|floatformat:2 }}</td></tr>
+                        <tr><th>VENTA</th><td class="text-end">{{ registro_anterior.VENTA|floatformat:2 }}</td></tr>
+                        <!-- Agrega más campos según necesites -->
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endif %}
+{% endblock %}
