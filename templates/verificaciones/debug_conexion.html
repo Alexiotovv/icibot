@@ -1,0 +1,99 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Debug Conexión MySQL{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="h3 mb-4 text-gray-800">
+        <i class="fas fa-bug me-2"></i>Debug Conexión MySQL
+    </h1>
+    
+    <!-- Configuración -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-cog me-2"></i>Configuración
+            </h6>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <tr>
+                    <th>Host</th>
+                    <td>{{ config.host }}</td>
+                </tr>
+                <tr>
+                    <th>Base de Datos</th>
+                    <td>{{ config.database }}</td>
+                </tr>
+                <tr>
+                    <th>Usuario</th>
+                    <td>{{ config.user }}</td>
+                </tr>
+                <tr>
+                    <th>Puerto</th>
+                    <td>{{ config.port }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Resultados del Debug -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-search me-2"></i>Resultados del Debug
+            </h6>
+        </div>
+        <div class="card-body">
+            {% for info in debug_info %}
+            <div class="alert 
+                {% if '✅' in info.tipo %}alert-success
+                {% elif '❌' in info.tipo %}alert-danger
+                {% elif '⚠️' in info.tipo %}alert-warning
+                {% else %}alert-info{% endif %} mb-3">
+                <h5 class="alert-heading">{{ info.tipo }} {{ info.mensaje }}</h5>
+                
+                {% if info.detalles %}
+                <hr>
+                <div class="mt-2">
+                    {% if info.detalles.0 is dict %}
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                {% for key in info.detalles.0.keys %}
+                                <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detalle in info.detalles %}
+                            <tr>
+                                {% for value in detalle.values %}
+                                <td>{{ value }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <pre class="mt-2">{{ info.detalles }}</pre>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Acciones -->
+    <div class="mt-4">
+        <a href="{% url 'verificaciones:verificar_inconsistencias' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Volver a Inconsistencias
+        </a>
+        <a href="{% url 'verificaciones:debug_conexion_mysql' %}" class="btn btn-info">
+            <i class="fas fa-sync-alt me-2"></i>Reintentar
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Subir Archivo DBF para Corrección{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-upload me-2"></i>Subir Archivo DBF
+        </h1>
+        <a href="{% url 'correccion_dbf:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Información -->
+    <div class="alert alert-info mb-4">
+        <h4 class="alert-heading">
+            <i class="fas fa-info-circle me-2"></i>Información importante
+        </h4>
+        <ul class="mb-0">
+            <li>Suba el archivo <strong>ZIP</strong> que contiene los archivos DBF del MINSA</li>
+            <li>El sistema buscará automáticamente el archivo <code>FORMDET.DBF</code></li>
+            <li>Si el ZIP tiene contraseña, ingrésela en el campo correspondiente</li>
+            <li>Seleccione el mes del archivo (formato AAAAMM, ej: 202601)</li>
+            <li>El sistema creará automáticamente un backup del archivo original</li>
+        </ul>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card shadow">
+        <div class="card-header py-3 bg-success text-white">
+            <h6 class="m-0 font-weight-bold">Formulario de Subida</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="formSubida">
+                {% csrf_token %}
+                
+                <!-- Mostrar errores generales del formulario -->
+                {% if form.errors %}
+                <div class="alert alert-danger mb-4">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Errores en el formulario:
+                    </h6>
+                    <ul class="mb-0">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <div class="row g-3">
+                    <!-- Archivo ZIP -->
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.archivo_zip.label }}</label>
+                        {{ form.archivo_zip }}
+                        <div class="form-text">
+                            Archivo ZIP que contiene los DBF del mes. Tamaño máximo: 50MB
+                        </div>
+                    </div>
+                    
+                    <!-- Contraseña (opcional) -->
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.contraseña.label }}</label>
+                        {{ form.contraseña }}
+                        <div class="form-text">
+                            Solo si el archivo ZIP está protegido con contraseña
+                        </div>
+                    </div>
+                    <!-- En subir_archivo.html, después del campo de contraseña original -->
+                    <div class="col-md-6">
+                        <label class="form-label">Contraseña para archivo corregido</label>
+                        <div class="input-group">
+                            <input type="password" 
+                                class="form-control" 
+                                name="contraseña_corregido"
+                                id="id_contraseña_corregido"
+                                placeholder="Misma contraseña del ZIP original">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            <div class="form-check">
+                                <input type="checkbox" 
+                                    class="form-check-input" 
+                                    id="usar_misma_contraseña"
+                                    checked>
+                                <label class="form-check-label" for="usar_misma_contraseña">
+                                    Usar misma contraseña del archivo original
+                                </label>
+                            </div>
+                            Dejar vacío si no desea proteger el archivo corregido.
+                        </div>
+                    </div>
+                    <!-- Mes -->
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.mes_archivo.label }}</label>  <!-- CAMBIADO AQUÍ -->
+                        {{ form.mes_archivo }}  <!-- CAMBIADO AQUÍ -->
+                        <div class="form-text">
+                            Mes del archivo en formato AAAAMM (ej: Enero 2026 = 202601)
+                        </div>
+                    </div>
+                    
+                    <!-- Opciones -->
+                    <div class="col-md-6">
+                        <div class="mt-4">
+                            <div class="form-check">
+                                {{ form.crear_backup }}
+                                <label class="form-check-label">
+                                    {{ form.crear_backup.label }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.confirmar_correccion }}
+                                <label class="form-check-label">
+                                    {{ form.confirmar_correccion.label }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información de ejemplo -->
+                <div class="alert alert-warning mt-4">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Estructura esperada del ZIP:
+                    </h6>
+                    <pre class="mb-0 mt-2">
+                        📁 202601.zip
+                        ├── 📄 FORM.DBF
+                        ├── 📄 FORMDET.DBF      ← Archivo que se corregirá
+                        ├── 📄 ALMACENES.DBF
+                        └── 📄 ...otros archivos
+                    </pre>
+                </div>
+                
+                <!-- Botones -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-upload me-2"></i>Subir y Continuar
+                    </button>
+                    <a href="{% url 'correccion_dbf:dashboard' %}" class="btn btn-secondary">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Validación del formato del mes
+    $('#id_mes_archivo').on('blur', function() {  <!-- CAMBIADO AQUÍ -->
+        const mes = $(this).val();
+        if (mes && mes.length === 6) {
+            const año = mes.substring(0, 4);
+            const mesNum = mes.substring(4, 6);
+            
+            if (parseInt(año) < 2000 || parseInt(año) > 2100) {
+                alert('Año inválido. Debe estar entre 2000 y 2100.');
+                $(this).val('');
+            }
+            
+            if (parseInt(mesNum) < 1 || parseInt(mesNum) > 12) {
+                alert('Mes inválido. Debe estar entre 01 y 12.');
+                $(this).val('');
+            }
+        }
+    });
+
+    
+
+});
+</script>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Limpieza de Datos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-broom text-danger me-2"></i>
+                Limpieza de Datos
+            </h1>
+            <p class="text-muted mb-0">Gestión y limpieza de tablas de la base de datos</p>
+        </div>
+        <div>
+            <a href="{% url 'limpieza:consultar_tabla' %}" class="btn btn-info me-2">
+                <i class="fas fa-search me-2"></i>Consultar Tablas
+            </a>
+            <a href="{% url 'limpieza:limpiar_tabla' %}" class="btn btn-danger">
+                <i class="fas fa-trash me-2"></i>Limpiar Tabla
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen General -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Tablas Monitoreadas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_tablas }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-table fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Registros
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_registros|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-database fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Última Operación
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if operaciones_recientes.0 %}
+                                    {{ operaciones_recientes.0.tipo_operacion|title }}
+                                {% else %}
+                                    Ninguna
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-history fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Espacio Aprox.
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% widthratio total_registros 1000 1 %} MB
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Estadísticas -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-chart-bar me-2"></i>Estadísticas por Tabla
+            </h6>
+            <button id="actualizarEstadisticas" class="btn btn-sm btn-primary">
+                <i class="fas fa-sync-alt me-1"></i>Actualizar
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTableEstadisticas" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tabla</th>
+                            <th>Total Registros</th>
+                            <th>Fecha Más Antigua</th>
+                            <th>Fecha Más Reciente</th>
+                            <th>Tamaño Aprox.</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tabla, datos in estadisticas.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ tabla }}</strong>
+                                <br>
+                                <small class="text-muted">{{ datos.campos|length }} campos</small>
+                            </td>
+                            <td>
+                                {% if datos.total == 'Error' %}
+                                    <span class="badge bg-danger">Error</span>
+                                {% else %}
+                                    <span class="badge bg-primary">{{ datos.total }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if datos.fecha_min %}
+                                    {{ datos.fecha_min|date:"d/m/Y" }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if datos.fecha_max %}
+                                    {{ datos.fecha_max|date:"d/m/Y" }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if datos.total != 'Error' %}
+                                    {{ datos.tamaño_aprox|filesizeformat }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'limpieza:exportar_backup' tabla %}" 
+                                       class="btn btn-sm btn-outline-info" title="Exportar Backup">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <a href="{% url 'limpieza:optimizar_tabla' tabla %}" 
+                                       class="btn btn-sm btn-outline-warning" title="Optimizar Tabla"
+                                       onclick="return confirm('¿Optimizar tabla {{ tabla }}?')">
+                                        <i class="fas fa-tools"></i>
+                                    </a>
+                                    <a href="{% url 'limpieza:consultar_tabla' %}?tabla={{ tabla }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver Detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Operaciones -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-history me-2"></i>Historial de Operaciones
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if operaciones_recientes %}
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Operación</th>
+                            <th>Tabla</th>
+                            <th>Usuario</th>
+                            <th>Estado</th>
+                            <th>Registros</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for op in operaciones_recientes %}
+                        <tr>
+                            <td>{{ op.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if op.tipo_operacion == 'vaciar' %}bg-danger
+                                    {% elif op.tipo_operacion == 'eliminar' %}bg-warning
+                                    {% else %}bg-info{% endif %}">
+                                    {{ op.get_tipo_operacion_display }}
+                                </span>
+                            </td>
+                            <td><code>{{ op.tabla }}</code></td>
+                            <td>{{ op.usuario.username }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if op.estado == 'completado' %}bg-success
+                                    {% elif op.estado == 'error' %}bg-danger
+                                    {% elif op.estado == 'en_progreso' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ op.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if op.registros_eliminados > 0 %}
+                                    <span class="text-danger">-{{ op.registros_eliminados }}</span>
+                                {% else %}
+                                    {{ op.total_registros }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No hay operaciones registradas</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+$(document).ready(function() {
+    $('#dataTableEstadisticas').DataTable({
+        "order": [[1, "desc"]],
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+        }
+    });
+    
+    // Actualizar estadísticas
+    $('#actualizarEstadisticas').click(function() {
+        $.ajax({
+            url: '{% url "limpieza:estadisticas_ajax" %}',
+            success: function(data) {
+                // Aquí puedes actualizar las estadísticas en tiempo real
+                console.log('Estadísticas actualizadas:', data);
+                location.reload(); // Recargar la página por simplicidad
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

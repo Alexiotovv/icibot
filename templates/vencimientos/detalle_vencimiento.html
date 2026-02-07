@@ -1,0 +1,387 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Detalle de Medicamento Vencido{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-info-circle text-primary me-2"></i>
+                Detalle de Medicamento Vencido
+            </h1>
+            <p class="text-muted mb-0">Información detallada del medicamento vencido o por vencer</p>
+        </div>
+        <div>
+            <a href="{% url 'vencimientos:lista_vencimientos' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+            </a>
+            {% if not vencimiento.resuelto %}
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#marcarResueltoModal">
+                <i class="fas fa-check me-2"></i>Marcar como Resuelto
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tarjetas de Información -->
+    <div class="row mb-4">
+        <!-- Información General -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-pills me-2"></i>Información del Medicamento
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Establecimiento:</th>
+                                    <td>
+                                        <span class="badge bg-primary">{{ vencimiento.CODIGO_PRE }}</span>
+                                        {% if vencimiento.registro_formdet and vencimiento.registro_formdet.CODIGO_EJE %}
+                                        <span class="badge bg-secondary ms-2">Eje: {{ vencimiento.registro_formdet.CODIGO_EJE }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Código Medicamento:</th>
+                                    <td><strong>{{ vencimiento.CODIGO_MED }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Lote:</th>
+                                    <td>
+                                        <span class="badge bg-info">{{ vencimiento.MEDLOTE|default:"SIN LOTE" }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Registro Sanitario:</th>
+                                    <td>
+                                        {% if vencimiento.registro_formdet and vencimiento.registro_formdet.MEDREGSAN %}
+                                            <code>{{ vencimiento.registro_formdet.MEDREGSAN }}</code>
+                                        {% else %}
+                                            <span class="text-muted">No disponible</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Financiamiento:</th>
+                                    <td>
+                                        {% if vencimiento.registro_formdet and vencimiento.registro_formdet.FFINAN %}
+                                            <span class="badge bg-secondary">{{ vencimiento.registro_formdet.FFINAN }}</span>
+                                        {% else %}
+                                            <span class="text-muted">No disponible</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="40%">Fecha Vencimiento:</th>
+                                    <td>
+                                        <span class="badge 
+                                            {% if vencimiento.severidad == 'vencido' %}bg-danger
+                                            {% elif vencimiento.severidad == 'por_vencer' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ vencimiento.MEDFECHVTO|date:"d/m/Y" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Días Restantes:</th>
+                                    <td>
+                                        <span class="badge 
+                                            {% if vencimiento.dias_restantes < 0 %}bg-danger
+                                            {% elif vencimiento.dias_restantes <= 30 %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ vencimiento.dias_restantes }} días
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Estado:</th>
+                                    <td>
+                                        <span class="badge 
+                                            {% if vencimiento.severidad == 'vencido' %}bg-danger
+                                            {% elif vencimiento.severidad == 'por_vencer' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ vencimiento.get_severidad_display }}
+                                        </span>
+                                        {% if vencimiento.resuelto %}
+                                        <span class="badge bg-success ms-2">Resuelto</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Saldo Actual:</th>
+                                    <td class="h5 text-primary">{{ vencimiento.SALDO|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Mes/Año:</th>
+                                    <td>
+                                        {% if vencimiento.ANNOMES %}
+                                            {% with annomes=vencimiento.ANNOMES %}
+                                                {% if annomes|length == 6 %}
+                                                    {% with año=annomes|slice:":4" mes=annomes|slice:"4:" %}
+                                                        {% if mes == "01" %}Enero{% elif mes == "02" %}Febrero{% elif mes == "03" %}Marzo
+                                                        {% elif mes == "04" %}Abril{% elif mes == "05" %}Mayo{% elif mes == "06" %}Junio
+                                                        {% elif mes == "07" %}Julio{% elif mes == "08" %}Agosto{% elif mes == "09" %}Septiembre
+                                                        {% elif mes == "10" %}Octubre{% elif mes == "11" %}Noviembre{% elif mes == "12" %}Diciembre
+                                                        {% else %}{{ mes }}{% endif %} {{ año }}
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {{ annomes }}
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Información Adicional -->
+                    {% if vencimiento.registro_formdet %}
+                    <div class="mt-4">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Información Adicional
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    {% if vencimiento.registro_formdet.TIPSUM %}
+                                    <tr>
+                                        <th width="40%">Tipo Suministro:</th>
+                                        <td><span class="badge bg-dark">{{ vencimiento.registro_formdet.TIPSUM }}</span></td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if vencimiento.registro_formdet.TIPSUM2 %}
+                                    <tr>
+                                        <th>Tipo Suministro 2:</th>
+                                        <td><span class="badge bg-dark">{{ vencimiento.registro_formdet.TIPSUM2 }}</span></td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if vencimiento.registro_formdet.archivo_procesado %}
+                                    <tr>
+                                        <th>Archivo Origen:</th>
+                                        <td><small>{{ vencimiento.registro_formdet.archivo_procesado.nombre_archivo }}</small></td>
+                                    </tr>
+                                    {% endif %}
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <th width="40%">Fecha Detección:</th>
+                                        <td>{{ vencimiento.fecha_deteccion|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    {% if vencimiento.usuario_deteccion %}
+                                    <tr>
+                                        <th>Detectado por:</th>
+                                        <td>{{ vencimiento.usuario_deteccion.get_full_name|default:vencimiento.usuario_deteccion.username }}</td>
+                                    </tr>
+                                    {% endif %}
+                                    {% if vencimiento.resuelto %}
+                                    <tr>
+                                        <th>Fecha Resolución:</th>
+                                        <td>{{ vencimiento.fecha_resolucion|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Resuelto por:</th>
+                                        <td>{{ vencimiento.usuario_resolucion.get_full_name|default:vencimiento.usuario_resolucion.username }}</td>
+                                    </tr>
+                                    {% endif %}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Estado -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-clipboard-check me-2"></i>Estado Actual
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if vencimiento.severidad == 'vencido' %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-skull-crossbones fa-3x mb-3"></i>
+                            <h4 class="alert-heading">MEDICAMENTO VENCIDO</h4>
+                            <p>Este medicamento venció hace {{ vencimiento.dias_absolutos }} días.</p>
+                        </div>
+                        {% elif vencimiento.severidad == 'por_vencer' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock fa-3x mb-3"></i>
+                            <h4 class="alert-heading">POR VENCER</h4>
+                            <p>Vence en {{ vencimiento.dias_restantes }} días.</p>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <h4 class="alert-heading">ALERTA</h4>
+                            <p>Vence en {{ vencimiento.dias_restantes }} días.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if vencimiento.observaciones %}
+                    <div class="mt-4">
+                        <h6 class="text-primary">
+                            <i class="fas fa-comment me-2"></i>Observaciones
+                        </h6>
+                        <div class="alert alert-light border">
+                            {{ vencimiento.observaciones|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Otros Lotes del Mismo Medicamento -->
+    {% if otros_lotes %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-boxes me-2"></i>Otros Lotes del Mismo Medicamento
+            </h6>
+            <span class="badge bg-primary">{{ otros_lotes|length }} lotes</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Lote</th>
+                            <th>Vencimiento</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                            <th>Saldo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lote in otros_lotes %}
+                        <tr class="{% if lote.severidad == 'vencido' %}table-danger
+                                  {% elif lote.severidad == 'por_vencer' %}table-warning
+                                  {% else %}table-info{% endif %}">
+                            <td>{{ lote.MEDLOTE|default:"SIN LOTE" }}</td>
+                            <td>{{ lote.MEDFECHVTO|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge {% if lote.dias_restantes < 0 %}bg-danger
+                                                   {% elif lote.dias_restantes <= 30 %}bg-warning
+                                                   {% else %}bg-info{% endif %}">
+                                    {{ lote.dias_restantes }} días
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if lote.severidad == 'vencido' %}bg-danger
+                                                   {% elif lote.severidad == 'por_vencer' %}bg-warning
+                                                   {% else %}bg-info{% endif %}">
+                                    {{ lote.get_severidad_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ lote.SALDO|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'vencimientos:detalle_vencimiento' lote.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Acciones -->
+    <div class="card shadow">
+        <div class="card-body text-center">
+            <a href="{% url 'vencimientos:lista_vencimientos' %}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+            </a>
+            {% if not vencimiento.resuelto %}
+            <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#marcarResueltoModal">
+                <i class="fas fa-check me-2"></i>Marcar como Resuelto
+            </button>
+            <a href="{% url 'vencimientos:exportar_csv' %}?CODIGO_MED={{ vencimiento.CODIGO_MED }}" class="btn btn-info">
+                <i class="fas fa-download me-2"></i>Exportar este Medicamento
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Marcar como Resuelto -->
+{% if not vencimiento.resuelto %}
+<div class="modal fade" id="marcarResueltoModal" tabindex="-1" aria-labelledby="marcarResueltoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="marcarResueltoModalLabel">
+                    <i class="fas fa-check-circle me-2 text-success"></i>
+                    Marcar como Resuelto
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'vencimientos:marcar_resuelto' vencimiento.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ¿Está seguro de marcar este medicamento como resuelto?
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">
+                            <i class="fas fa-comment me-2"></i>Observaciones (opcional)
+                        </label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" 
+                                  rows="3" placeholder="Ej: Medicamento retirado, devuelto a proveedor, etc."></textarea>
+                        <div class="form-text">Describa la acción tomada para resolver este vencimiento.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Confirmar Resolución
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.table-borderless th {
+    font-weight: 600;
+    color: #6c757d;
+}
+.alert h4 {
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}

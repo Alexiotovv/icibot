@@ -13,4 +13,6 @@ urlpatterns = [
     path('verificaciones/exportar/', exportar_inconsistencias, name='exportar'),
 
     path('debug/verificacion/', debug_verificacion, name='debug_verificacion'),
+    path('debug-conexion/', debug_conexion_mysql, name='debug_conexion_mysql'),
+
 ]

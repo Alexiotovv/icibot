@@ -1,0 +1,251 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Corrección DBF{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-file-code text-success me-2"></i>
+                Corrección de Archivos DBF
+            </h1>
+            <p class="text-muted mb-0">Corrección automática de inconsistencias STOCK_FIN-SALDO en archivos DBF</p>
+        </div>
+        <div>
+            <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-success">
+                <i class="fas fa-upload me-2"></i>Subir Archivo para Corregir
+            </a>
+        </div>
+    </div>
+
+    
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Correcciones
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_correcciones }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Correcciones Hoy
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ correcciones_hoy }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Archivos Procesados
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_correcciones }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-archive fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Acciones Rápidas
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                <a href="{% url 'correccion_dbf:subir_archivo' %}" class="text-warning">Corregir Archivo</a>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bolt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- En el dashboard.html de correccion_dbf, después de las tarjetas -->
+    {% if request.session.archivo_corregido %}
+    <div class="alert alert-success">
+        <h5 class="alert-heading">
+            <i class="fas fa-file-zipper me-2"></i>Archivo Corregido Disponible
+        </h5>
+        <p>
+            Tienes un archivo corregido listo para descargar: 
+            <strong>{{ request.session.archivo_corregido.nombre }}</strong>
+            ({{ request.session.archivo_corregido.total_corregido }} registros corregidos)
+        </p>
+        <div class="mt-2">
+            <a href="{% url 'correccion_dbf:descargar_archivo' %}" class="btn btn-success btn-sm">
+                <i class="fas fa-download me-1"></i>Descargar
+            </a>
+            <a href="{% url 'correccion_dbf:limpiar_archivo' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-trash me-1"></i>Limpiar
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Últimas Correcciones -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-2"></i>Últimas Correcciones
+                    </h6>
+                    <a href="{% url 'correccion_dbf:historial' %}" class="btn btn-sm btn-primary">
+                        Ver Todo
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if ultimas_correcciones %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Archivo</th>
+                                    <th>Inconsistencia</th>
+                                    <th>Valor Anterior</th>
+                                    <th>Valor Corregido</th>
+                                    <th>Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for corr in ultimas_correcciones %}
+                                <tr>
+                                    <td>{{ corr.fecha_correccion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <small>{{ corr.nombre_archivo_original|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ corr.inconsistencia.CODIGO_PRE }}-{{ corr.inconsistencia.CODIGO_MED }}
+                                        </span>
+                                    </td>
+                                    <td class="text-danger"> {{ corr.valor_anterior|floatformat:2 }}</td>
+                                    <td class="text-success"> {{ corr.valor_corregido|floatformat:2 }}</td>
+                                    <td>{{ corr.usuario.username|default:"Sistema" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-export fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hay correcciones registradas</p>
+                        <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-success">
+                            <i class="fas fa-upload me-2"></i>Realizar Primera Corrección
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Usuarios -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-users me-2"></i>Top Usuarios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if correcciones_por_usuario %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Correcciones</th>
+                                    <th>Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usuario in correcciones_por_usuario %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-user-circle me-2 text-primary"></i>
+                                        {{ usuario.usuario__username|default:"Sistema" }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ usuario.total }}</span>
+                                    </td>
+                                    <td> {{ usuario.valor_total|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No hay datos de usuarios</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-upload me-2"></i>Subir Archivo DBF
+                        </a>
+                        <a href="{% url 'verificaciones:verificar_inconsistencias' %}" class="btn btn-info btn-lg">
+                            <i class="fas fa-search me-2"></i>Ver Inconsistencias
+                        </a>
+                        <a href="{% url 'correccion_dbf:historial' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-history me-2"></i>Ver Historial
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Medicamentos Vencidos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-calendar-times text-danger me-2"></i>
+                Medicamentos Vencidos o por Vencer
+            </h1>
+            <p class="text-muted mb-0">Detección de medicamentos vencidos o próximos a vencer</p>
+        </div>
+        <div>
+            <a href="{% url 'vencimientos:detectar_vencimientos' %}" class="btn btn-danger me-2">
+                <i class="fas fa-search me-2"></i>Detectar Vencimientos
+            </a>
+            <a href="{% url 'vencimientos:exportar_csv' %}" class="btn btn-success">
+                <i class="fas fa-download me-2"></i>Exportar CSV
+            </a>
+        </div>
+    </div>
+
+
+    {% if ultimo_mes %}
+        <div class="alert alert-info">
+            <i class="fas fa-calendar-alt me-2"></i>
+            Mostrando vencimientos del mes: <strong>{{ ultimo_mes }}</strong>
+            {% if meses_disponibles|length > 1 %}
+            <div class="mt-2">
+                <small>Otros meses disponibles:</small>
+                {% for mes in meses_disponibles %}
+                    {% if mes != ultimo_mes %}
+                    <a href="?ANNOMES={{ mes }}" class="badge bg-secondary ms-1">{{ mes }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-danger shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger mb-1">Vencidos</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ estadisticas.vencidos|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-skull-crossbones fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning mb-1">Por Vencer (30 días)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ estadisticas.por_vencer|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-info shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info mb-1">Alerta (60 días)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ estadisticas.alerta|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary mb-1">Valor Total</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ estadisticas.valor_total|default:0|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.CODIGO_PRE.label }}</label>
+                    {{ form.CODIGO_PRE }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.CODIGO_MED.label }}</label>
+                    {{ form.CODIGO_MED }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.MEDLOTE.label }}</label>
+                    {{ form.MEDLOTE }}
+                </div>
+                <!-- En la sección de filtros, después del campo MEDLOTE -->
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.ANNOMES.label }}</label>
+                    {{ form.ANNOMES }}
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.severidad.label }}</label>
+                    {{ form.severidad }}
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.fecha_desde.label }}</label>
+                    {{ form.fecha_desde }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">{{ form.fecha_hasta.label }}</label>
+                    {{ form.fecha_hasta }}
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check">
+                        {{ form.solo_no_resueltos }}
+                        <label class="form-check-label">
+                            {{ form.solo_no_resueltos.label }}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                    <a href="{% url 'vencimientos:lista_vencimientos' %}" class="btn btn-secondary">
+                        <i class="fas fa-redo me-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Vencimientos -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list-alt me-2"></i>Medicamentos Detectados
+            </h6>
+            <span class="badge bg-primary">{{ vencimientos|length }} registros</span>
+        </div>
+        <div class="card-body">
+            {% if vencimientos %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Establecimiento</th>
+                            <th>Medicamento</th>
+                            <th>Lote</th>
+                            <th>Mes/Año</th>
+                            <th>Vencimiento</th>
+                            <th>Días</th>
+                            <th>Estado</th>
+                            <th>Saldo</th>
+                            <th>Detectado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ven in vencimientos %}
+                        <tr class="{% if ven.severidad == 'vencido' %}table-danger
+                                  {% elif ven.severidad == 'por_vencer' %}table-warning
+                                  {% else %}table-info{% endif %}">
+                            <td><strong>{{ ven.CODIGO_PRE }}</strong></td>
+                            <td>{{ ven.CODIGO_MED }}</td>
+                            <td>{{ ven.MEDLOTE|default:"SIN LOTE" }}</td>
+                            <td>
+                                {% if ven.registro_formdet.ANNOMES %}
+                                    {% with annomes=ven.registro_formdet.ANNOMES %}
+                                        {% if annomes|length == 6 %}
+                                            {% with año=annomes|slice:":4" mes=annomes|slice:"4:" %}
+                                                {% if mes == "01" %}Ene{% elif mes == "02" %}Feb{% elif mes == "03" %}Mar
+                                                {% elif mes == "04" %}Abr{% elif mes == "05" %}May{% elif mes == "06" %}Jun
+                                                {% elif mes == "07" %}Jul{% elif mes == "08" %}Ago{% elif mes == "09" %}Sep
+                                                {% elif mes == "10" %}Oct{% elif mes == "11" %}Nov{% elif mes == "12" %}Dic
+                                                {% else %}{{ mes }}{% endif %} {{ año }}
+                                            {% endwith %}
+                                        {% else %}
+                                            {{ annomes }}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ ven.MEDFECHVTO|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge {% if ven.dias_restantes < 0 %}bg-danger
+                                                   {% elif ven.dias_restantes <= 30 %}bg-warning
+                                                   {% else %}bg-info{% endif %}">
+                                    {{ ven.dias_restantes }} días
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if ven.severidad == 'vencido' %}bg-danger
+                                                   {% elif ven.severidad == 'por_vencer' %}bg-warning
+                                                   {% else %}bg-info{% endif %}">
+                                    {{ ven.get_severidad_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">{{ ven.SALDO|floatformat:2 }}</td>
+                            <td>{{ ven.fecha_deteccion|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'vencimientos:detalle_vencimiento' ven.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        🔍
+                                    </a>
+                                    {% if not ven.resuelto %}
+                                    <form method="post" action="{% url 'vencimientos:marcar_resuelto' ven.id %}" 
+                                          class="d-inline" onsubmit="return confirm('¿Marcar como resuelto?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                          ✅  
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4 class="text-muted">No se encontraron medicamentos vencidos</h4>
+                <p class="text-muted">Utilice los filtros para buscar o ejecute una nueva detección.</p>
+                <a href="{% url 'vencimientos:detectar_vencimientos' %}" class="btn btn-danger mt-3">
+                    <i class="fas fa-search me-2"></i>Detectar Vencimientos
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('table').DataTable({
+        "order": [[3, "asc"]], // Ordenar por fecha de vencimiento
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+        },
+        "pageLength": 25
+    });
+});
+</script>
+{% endblock %}

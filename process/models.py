@@ -20,13 +20,3 @@ class ExternalAPI(models.Model):
     def __str__(self):
         return self.nombre
 
-# class TareaProcesamiento(models.Model):
-#     archivo = models.FileField(upload_to='uploads/')
-#     password = models.CharField(max_length=255, null=True, blank=True)
-#     estado = models.CharField(max_length=20, default='pendiente')  # pendiente, procesando, terminado, error
-#     resultado = models.JSONField(null=True, blank=True)
-#     creado = models.DateTimeField(auto_now_add=True)
-#     actualizado = models.DateTimeField(auto_now=True)
-
-#     def __str__(self):
-#         return f"Tarea {self.id} - {self.estado}"

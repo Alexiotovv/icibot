@@ -1,0 +1,118 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Historial de Correcciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-history me-2"></i>
+                Historial de Correcciones
+            </h1>
+            <p class="text-muted mb-0">Registro de todas las correcciones realizadas en archivos DBF</p>
+        </div>
+        <div>
+            <a href="{% url 'correccion_dbf:dashboard' %}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+            </a>
+            <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-success">
+                <i class="fas fa-upload me-2"></i>Nueva Corrección
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de Correcciones -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list-alt me-2"></i>Correcciones Realizadas
+            </h6>
+            <span class="badge bg-primary">{{ total_correcciones }} registros</span>
+        </div>
+        <div class="card-body">
+            {% if correcciones %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTableHistorial">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Archivo Original</th>
+                            <th>Archivo Corregido</th>
+                            <th>Inconsistencia</th>
+                            <th>Valor Anterior</th>
+                            <th>Valor Corregido</th>
+                            <th>Diferencia</th>
+                            <th>Usuario</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for corr in correcciones %}
+                        <tr>
+                            <td>{{ corr.fecha_correccion|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <small title="{{ corr.nombre_archivo_original }}">
+                                    {{ corr.nombre_archivo_original|truncatechars:25 }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if corr.nombre_archivo_corregido %}
+                                <small title="{{ corr.nombre_archivo_corregido }}">
+                                    {{ corr.nombre_archivo_corregido|truncatechars:25 }}
+                                </small>
+                                {% else %}
+                                <span class="text-muted">No generado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info" title="{{ corr.inconsistencia.descripcion|truncatechars:100 }}">
+                                    {{ corr.inconsistencia.CODIGO_PRE }}-{{ corr.inconsistencia.CODIGO_MED }}
+                                </span>
+                            </td>
+                            <td class="text-danger text-end"> {{ corr.valor_anterior|floatformat:2 }}</td>
+                            <td class="text-success text-end"> {{ corr.valor_corregido|floatformat:2 }}</td>
+                            <td class="text-end">
+                                <span class="badge {% if corr.diferencia > 1000 %}bg-danger{% elif corr.diferencia > 100 %}bg-warning{% else %}bg-info{% endif %}">
+                                     {{ corr.diferencia|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td>{{ corr.usuario.username|default:"Sistema" }}</td>
+                            <td>
+                                <span class="badge {% if corr.estado == 'corregido' %}bg-success{% elif corr.estado == 'error' %}bg-danger{% elif corr.estado == 'procesando' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ corr.get_estado_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-history fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay correcciones registradas</h4>
+                <p class="text-muted">Realice su primera corrección para ver el historial aquí.</p>
+                <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-success">
+                    <i class="fas fa-upload me-2"></i>Realizar Primera Corrección
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#dataTableHistorial').DataTable({
+        "order": [[0, "desc"]],
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json"
+        },
+        "pageLength": 25
+    });
+});
+</script>
+{% endblock %}

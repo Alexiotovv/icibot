@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import connection
@@ -14,6 +15,7 @@ from .forms import BuscarInconsistenciasForm
 from .models import InconsistenciaFormDet, EstadisticaVerificacion
 from externaldata.models import FormDet, ArchivosProcesados
 from decimal import Decimal
+from verificaciones.db_utils import get_nombres_establecimientos_batch
 
 
 @login_required
@@ -25,6 +27,7 @@ def verificar_inconsistencias(request):
     inconsistencias = []
     estadisticas = {}
     resumen_codigo_pre = []
+    nombres_establecimientos = {}  # <-- DEFINIR AL INICIO
     
     if request.method == 'GET' and any(request.GET.values()):
         if form.is_valid():
@@ -105,17 +108,33 @@ def verificar_inconsistencias(request):
                 total=Count('id'),
                 diferencia_promedio=Avg('diferencia')
             ).order_by('-total')[:20])
+            
+            # Obtener nombres de establecimientos para el resumen
+            if resumen_codigo_pre:
+                codigos_ipress = [resumen['CODIGO_PRE'] for resumen in resumen_codigo_pre]
+                nombres_establecimientos = get_nombres_establecimientos_batch(codigos_ipress)
+                
+                # Agregar nombre a cada resumen
+                for resumen in resumen_codigo_pre:
+                    resumen['nombre_establecimiento'] = nombres_establecimientos.get(
+                        resumen['CODIGO_PRE'], 
+                        resumen['CODIGO_PRE']
+                    )
+            
+            # Obtener nombres para la tabla de inconsistencias
+            if inconsistencias:
+                # Usar los nombres ya obtenidos o obtener nuevos si no hay resumen
+                if not nombres_establecimientos:
+                    codigos_ipress = list(set(inc.CODIGO_PRE for inc in inconsistencias))
+                    nombres_establecimientos = get_nombres_establecimientos_batch(codigos_ipress)
     
-    # Verificar si se solicita ejecutar nueva verificación
-    ejecutar = request.GET.get('ejecutar', False)
-    if ejecutar and request.method == 'GET':
-        return redirect('ejecutar_verificacion')
-    
+    # Crear contexto con todas las variables
     context = {
         'form': form,
         'inconsistencias': inconsistencias,
         'estadisticas': estadisticas,
         'resumen_codigo_pre': resumen_codigo_pre,
+        'nombres_establecimientos': nombres_establecimientos,  # <-- YA DEFINIDA
         'ejecutar_verificacion_url': 'ejecutar_verificacion',
     }
     
@@ -564,3 +583,151 @@ def debug_verificacion(request):
     }
     
     return render(request, 'verificaciones/debug.html', context)
+
+
+
+
+@login_required
+def debug_conexion_mysql(request):
+    """Vista para debuggear la conexión a MySQL"""
+    from django.conf import settings
+    from .db_utils import get_mysql_connection, get_nombre_establecimiento
+    from .models import InconsistenciaFormDet
+    
+    debug_info = []
+    codigos_ejemplo = []  # <-- DEFINIRLA AL INICIO
+    
+    # 1. Probar conexión
+    try:
+        conn = get_mysql_connection()
+        if conn:
+            debug_info.append({
+                'tipo': '✅ Conexión exitosa',
+                'mensaje': f'Conectado a MySQL: {settings.EXTERNAL_DB_HOST}:{settings.EXTERNAL_DB_PORT}/{settings.EXTERNAL_DB_NAME}'
+            })
+            
+            # 2. Verificar tabla almacenes
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SHOW TABLES LIKE 'almacenes'")
+            tabla_existe = cursor.fetchone()
+            
+            if tabla_existe:
+                debug_info.append({
+                    'tipo': '✅ Tabla encontrada',
+                    'mensaje': 'Tabla "almacenes" existe en la base de datos'
+                })
+                
+                # 3. Verificar estructura de la tabla
+                cursor.execute("DESCRIBE almacenes")
+                columnas = cursor.fetchall()
+                debug_info.append({
+                    'tipo': '📋 Estructura tabla',
+                    'mensaje': 'Columnas de la tabla almacenes:',
+                    'detalles': columnas
+                })
+                
+                # 4. Buscar algunos registros de ejemplo
+                # Primero, obtener algunos CODIGO_PRE de tus inconsistencias
+                if InconsistenciaFormDet.objects.exists():
+                    codigos_ejemplo = list(InconsistenciaFormDet.objects.values_list(
+                        'CODIGO_PRE', flat=True
+                    ).distinct()[:5])
+                    
+                    debug_info.append({
+                        'tipo': '📝 Códigos de ejemplo',
+                        'mensaje': f'Tomados de InconsistenciaFormDet: {codigos_ejemplo}'
+                    })
+                    
+                    for codigo in codigos_ejemplo:
+                        cursor.execute(
+                            "SELECT cod_ipress, nombre_ipress FROM almacenes WHERE cod_ipress = %s",
+                            (codigo,)
+                        )
+                        resultado = cursor.fetchone()
+                        
+                        if resultado:
+                            debug_info.append({
+                                'tipo': '✅ Registro encontrado',
+                                'mensaje': f'CODIGO_PRE: {codigo} → {resultado["nombre_ipress"]}'
+                            })
+                        else:
+                            debug_info.append({
+                                'tipo': '❌ Registro NO encontrado',
+                                'mensaje': f'CODIGO_PRE: {codigo} no existe en tabla almacenes'
+                            })
+                else:
+                    # Si no hay inconsistencias, buscar algunos códigos de ejemplo directo de la tabla
+                    cursor.execute("SELECT cod_ipress FROM almacenes LIMIT 5")
+                    ejemplos_db = cursor.fetchall()
+                    codigos_ejemplo = [row['cod_ipress'] for row in ejemplos_db]
+                    
+                    debug_info.append({
+                        'tipo': '⚠️ Sin inconsistencias',
+                        'mensaje': 'No hay registros en InconsistenciaFormDet. Usando ejemplos directos de la tabla almacenes.',
+                        'detalles': f'Ejemplos: {codigos_ejemplo}'
+                    })
+                
+                # 5. Contar total de registros
+                cursor.execute("SELECT COUNT(*) as total FROM almacenes")
+                total = cursor.fetchone()
+                debug_info.append({
+                    'tipo': '📊 Total registros',
+                    'mensaje': f'Total de establecimientos en tabla: {total["total"]}'
+                })
+                
+                # 6. Mostrar algunos nombres de ejemplo
+                cursor.execute("SELECT cod_ipress, nombre_ipress FROM almacenes LIMIT 5")
+                ejemplos = cursor.fetchall()
+                debug_info.append({
+                    'tipo': '📝 Ejemplos de datos',
+                    'mensaje': 'Primeros 5 registros de almacenes:',
+                    'detalles': ejemplos
+                })
+                
+            else:
+                debug_info.append({
+                    'tipo': '❌ Tabla NO encontrada',
+                    'mensaje': 'No existe la tabla "almacenes" en la base de datos'
+                })
+            
+            cursor.close()
+            conn.close()
+            
+        else:
+            debug_info.append({
+                'tipo': '❌ Error de conexión',
+                'mensaje': 'No se pudo establecer conexión con MySQL'
+            })
+            
+    except Exception as e:
+        debug_info.append({
+            'tipo': '❌ Excepción',
+            'mensaje': f'Error: {str(e)}',
+            'detalles': str(e)
+        })
+    
+    # 7. Probar la función get_nombre_establecimiento
+    if codigos_ejemplo:
+        for codigo in codigos_ejemplo[:3]:  # Solo primeros 3 para no saturar
+            nombre = get_nombre_establecimiento(codigo)
+            debug_info.append({
+                'tipo': '🧪 Función get_nombre_establecimiento',
+                'mensaje': f'Para {codigo} → {nombre}'
+            })
+    else:
+        debug_info.append({
+            'tipo': '⚠️ Sin códigos',
+            'mensaje': 'No hay códigos para probar la función get_nombre_establecimiento'
+        })
+    
+    context = {
+        'debug_info': debug_info,
+        'config': {
+            'host': settings.EXTERNAL_DB_HOST,
+            'database': settings.EXTERNAL_DB_NAME,
+            'user': settings.EXTERNAL_DB_USER,
+            'port': settings.EXTERNAL_DB_PORT,
+        }
+    }
+    
+    return render(request, 'verificaciones/debug_conexion.html', context)

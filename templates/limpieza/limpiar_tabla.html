@@ -1,0 +1,151 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Limpiar Tabla{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-trash text-danger me-2"></i>Limpiar Tabla
+        </h1>
+        <a href="{% url 'limpieza:dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Advertencia -->
+    <div class="alert alert-danger mb-4">
+        <h4 class="alert-heading">
+            <i class="fas fa-exclamation-triangle me-2"></i>¡ADVERTENCIA!
+        </h4>
+        <p>Esta operación <strong>ELIMINARÁ DATOS PERMANENTEMENTE</strong> de la base de datos.</p>
+        <ul>
+            <li>Los datos eliminados NO se pueden recuperar</li>
+            <li>Realice un backup antes de proceder</li>
+            <li>Asegúrese de tener los permisos necesarios</li>
+        </ul>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card shadow">
+        <div class="card-header py-3 bg-danger text-white">
+            <h6 class="m-0 font-weight-bold">Formulario de Limpieza</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" id="formLimpieza">
+                {% csrf_token %}
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.tabla.label }}</label>
+                        {{ form.tabla }}
+                        <div class="form-text">Seleccione la tabla a limpiar</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.operacion.label }}</label>
+                        {{ form.operacion }}
+                        <div class="form-text">
+                            <span id="descripcionOperacion">
+                                {% if form.operacion.value == 'vaciar' %}
+                                    Eliminará TODOS los registros de la tabla
+                                {% elif form.operacion.value == 'backup_vaciar' %}
+                                    Creará backup y luego vaciará la tabla
+                                {% elif form.operacion.value == 'eliminar_filtros' %}
+                                    Eliminará registros según filtros
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros por fecha (solo para eliminación filtrada) -->
+                    <div class="col-md-6" id="filtroFecha" style="display: none;">
+                        <label class="form-label">{{ form.fecha_hasta.label }}</label>
+                        {{ form.fecha_hasta }}
+                        <div class="form-text">{{ form.fecha_hasta.help_text }}</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">{{ form.confirmacion.label }}</label>
+                        {{ form.confirmacion }}
+                        <div class="form-text">{{ form.confirmacion.help_text }}</div>
+                        {% if form.confirmacion.errors %}
+                        <div class="alert alert-danger mt-2">
+                            {{ form.confirmacion.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Resumen de la operación -->
+                <div class="alert alert-warning mt-4" id="resumenOperacion">
+                    <h6 class="alert-heading">Resumen de la operación:</h6>
+                    <p id="textoResumen">Seleccione una tabla y operación para ver el resumen</p>
+                </div>
+                
+                <!-- Botones -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-danger btn-lg me-2" 
+                            onclick="return confirm('¿ESTÁ ABSOLUTAMENTE SEGURO? Esta acción NO se puede deshacer.')">
+                        <i class="fas fa-trash me-2"></i>EJECUTAR LIMPIEZA
+                    </button>
+                    <a href="{% url 'limpieza:dashboard' %}" class="btn btn-secondary">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Mostrar/ocultar filtro de fecha según operación
+    function actualizarFiltros() {
+        const operacion = $('#id_operacion').val();
+        const filtroFecha = $('#filtroFecha');
+        
+        if (operacion === 'eliminar_filtros') {
+            filtroFecha.show();
+        } else {
+            filtroFecha.hide();
+        }
+        
+        // Actualizar descripción
+        const descripciones = {
+            'vaciar': 'Eliminará TODOS los registros de la tabla',
+            'backup_vaciar': 'Creará backup y luego vaciará la tabla',
+            'eliminar_filtros': 'Eliminará registros según los filtros especificados'
+        };
+        
+        $('#descripcionOperacion').text(descripciones[operacion] || '');
+        actualizarResumen();
+    }
+    
+    // Actualizar resumen
+    function actualizarResumen() {
+        const tabla = $('#id_tabla option:selected').text();
+        const operacion = $('#id_operacion option:selected').text();
+        const fecha = $('#id_fecha_hasta').val();
+        
+        let resumen = `Tabla: <strong>${tabla}</strong><br>`;
+        resumen += `Operación: <strong>${operacion}</strong><br>`;
+        
+        if (fecha && $('#id_operacion').val() === 'eliminar_filtros') {
+            resumen += `Fecha límite: <strong>${fecha}</strong>`;
+        }
+        
+        $('#textoResumen').html(resumen);
+    }
+    
+    // Event listeners
+    $('#id_tabla, #id_operacion, #id_fecha_hasta').change(actualizarResumen);
+    $('#id_operacion').change(actualizarFiltros);
+    
+    // Inicializar
+    actualizarFiltros();
+    actualizarResumen();
+});
+</script>
+{% endblock %}

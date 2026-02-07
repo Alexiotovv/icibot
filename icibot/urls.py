@@ -25,6 +25,10 @@ urlpatterns = [
     path('', include('process.urls')),
     path('', include('externaldata.urls')),
     path('', include('verificaciones.urls')),
+    path('', include('vencimientos.urls')),
+    path('', include('limpieza.urls')),
+    path('', include('correccion_dbf.urls')),
+
 
 ]
 if settings.DEBUG:

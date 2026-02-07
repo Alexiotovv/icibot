@@ -1,0 +1,248 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block title %}Seleccionar Inconsistencias{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-check-square me-2"></i>Seleccionar Inconsistencias a Corregir
+        </h1>
+        <div>
+            <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del mes -->
+    <div class="alert alert-primary mb-4">
+        <h4 class="alert-heading">
+            <i class="fas fa-calendar-alt me-2"></i>Información de corrección
+        </h4>
+        <p class="mb-0">
+            <strong>Archivo a corregir:</strong> {{ mes_archivo }} <br>
+            <strong>Comparando con datos de:</strong> {{ mes_anterior }} <br>
+            <strong>Inconsistencias encontradas:</strong> {{ total_inconsistencias }}
+        </p>
+    </div>
+
+    <!-- Formulario SIMPLE -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Inconsistencias Disponibles
+            </h6>
+            <span class="badge bg-primary">{{ total_inconsistencias }} encontradas</span>
+        </div>
+        <div class="card-body">
+            <form method="post" id="formSeleccion">
+                {% csrf_token %}
+                
+                {% if total_inconsistencias > 0 %}
+                
+                <!-- Opciones de selección -->
+                <div class="mb-4">
+                    <div class="form-check form-check-inline">
+                        <input type="checkbox" class="form-check-input" id="selectAll">
+                        <label class="form-check-label" for="selectAll">
+                            <strong>Seleccionar todas</strong>
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="checkbox" class="form-check-input" id="selectHigh">
+                        <label class="form-check-label" for="selectHigh">
+                            Solo severidad alta (>  1000)
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="checkbox" class="form-check-input" id="selectAbove100">
+                        <label class="form-check-label" for="selectAbove100">
+                            Diferencia >  100
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Tabla de inconsistencias -->
+                <div class="table-responsive mb-4" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-bordered table-hover">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                            <tr>
+                                <th width="50">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="headerCheckbox">
+                                    </div>
+                                </th>
+                                <th>Establecimiento</th>
+                                <th>Medicamento</th>
+                                <th>Lote</th>
+                                <th>STOCK_FIN Anterior</th>
+                                <th>SALDO Actual</th>
+                                <th>Diferencia</th>
+                                <th>Severidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inc in inconsistencias %}
+                            <tr class="{% if inc.diferencia > 1000 %}table-danger{% elif inc.diferencia > 100 %}table-warning{% endif %}">
+                                <td class="text-center">
+                                    <!-- SOLUCIÓN: Usar autoescape off para que HTML se renderice -->
+                                    {% autoescape off %}
+                                    <div class="form-check">
+                                        <input type="checkbox" 
+                                               class="form-check-input inconsistency-checkbox" 
+                                               name="inconsistencias"
+                                               value="{{ inc.id }}"
+                                               id="inc_{{ inc.id }}"
+                                               data-diferencia="{{ inc.diferencia }}">
+                                    </div>
+                                    {% endautoescape %}
+                                </td>
+                                <td>
+                                    <strong>{{ inc.CODIGO_PRE }}</strong>
+                                </td>
+                                <td>{{ inc.CODIGO_MED }}</td>
+                                <td>{{ inc.MEDLOTE|default:"SIN LOTE" }}</td>
+                                <td class="text-end"> {{ inc.STOCKFIN_anterior|floatformat:2 }}</td>
+                                <td class="text-end text-danger"> {{ inc.SALDO_actual|floatformat:2 }}</td>
+                                <td class="text-end">
+                                    <span class="badge {% if inc.diferencia > 1000 %}bg-danger{% elif inc.diferencia > 100 %}bg-warning{% else %}bg-info{% endif %}">
+                                         {{ inc.diferencia|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if inc.diferencia > 1000 %}bg-danger{% elif inc.diferencia > 100 %}bg-warning{% else %}bg-info{% endif %}">
+                                        {% if inc.diferencia > 1000 %}
+                                            Alta
+                                        {% elif inc.diferencia > 100 %}
+                                            Media
+                                        {% else %}
+                                            Baja
+                                        {% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Resumen de selección -->
+                <div class="alert alert-info" id="selectionSummary">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-chart-bar me-2"></i>Resumen de selección
+                    </h6>
+                    <p id="summaryText">Seleccione al menos una inconsistencia para continuar.</p>
+                    <div id="summaryDetails" style="display: none;">
+                        <p class="mb-1"><strong>Total seleccionado:</strong> <span id="totalSelected">0</span></p>
+                        <p class="mb-1"><strong>Diferencia total:</strong>  <span id="totalDifference">0.00</span></p>
+                        <p class="mb-0"><strong>Valor a corregir:</strong>  <span id="totalToCorrect">0.00</span></p>
+                    </div>
+                </div>
+                
+                <!-- Botones -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success btn-lg" id="btnContinuar" disabled>
+                        <i class="fas fa-play me-2"></i>Continuar con la Corrección
+                    </button>
+                    <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-secondary">
+                        Cancelar
+                    </a>
+                </div>
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-circle fa-4x text-warning mb-3"></i>
+                    <h4 class="text-muted">No hay inconsistencias pendientes</h4>
+                    <p class="text-muted">
+                        No se encontraron inconsistencias para el mes anterior {{ mes_anterior }}<br>
+                        <small>Verifique que haya ejecutado la detección de inconsistencias primero.</small>
+                    </p>
+                    <a href="{% url 'correccion_dbf:subir_archivo' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript SIMPLE sin jQuery -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DEBUG: Página cargada');
+    
+    // Referencias
+    const btnContinuar = document.getElementById('btnContinuar');
+    const checkboxes = document.querySelectorAll('.inconsistency-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    const headerCheckbox = document.getElementById('headerCheckbox');
+    
+    console.log('DEBUG: Checkboxes encontrados:', checkboxes.length);
+    
+    // Función para actualizar el botón
+    function actualizarBoton() {
+        const seleccionados = document.querySelectorAll('.inconsistency-checkbox:checked').length;
+        console.log('DEBUG: Checkboxes seleccionados:', seleccionados);
+        
+        if (seleccionados > 0) {
+            btnContinuar.disabled = false;
+            console.log('DEBUG: Botón HABILITADO');
+        } else {
+            btnContinuar.disabled = true;
+            console.log('DEBUG: Botón DESHABILITADO');
+        }
+    }
+    
+    // Función para seleccionar/deseleccionar todos
+    function seleccionarTodos(estado) {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = estado;
+        });
+        actualizarBoton();
+    }
+    
+    // Eventos para seleccionar todos
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            seleccionarTodos(this.checked);
+        });
+    }
+    
+    if (headerCheckbox) {
+        headerCheckbox.addEventListener('change', function() {
+            seleccionarTodos(this.checked);
+        });
+    }
+    
+    // Eventos para cada checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', actualizarBoton);
+    });
+    
+    // Evento para el formulario
+    const form = document.getElementById('formSeleccion');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const seleccionados = document.querySelectorAll('.inconsistency-checkbox:checked').length;
+            console.log('DEBUG: Intentando enviar formulario. Seleccionados:', seleccionados);
+            
+            if (seleccionados === 0) {
+                e.preventDefault();
+                alert('⚠️ Debe seleccionar al menos una inconsistencia para continuar.');
+                console.log('DEBUG: Envío cancelado');
+                return false;
+            }
+            
+            console.log('DEBUG: Formulario enviado correctamente');
+            return true;
+        });
+    }
+    
+    // Inicializar
+    actualizarBoton();
+});
+</script>
+{% endblock %}
