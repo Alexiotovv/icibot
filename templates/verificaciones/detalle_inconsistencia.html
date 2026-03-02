@@ -208,11 +208,11 @@
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td><strong>MEDFECHVTO</strong></td>
-                                                    <td>{{ inconsistencia.MEDFECHVTO_anterior|date:"d/m/Y"|default:"Sin fecha" }}</td>
-                                                    <td>{{ inconsistencia.MEDFECHVTO_actual|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                                                    <td><strong>FEC_EXP</strong></td>
+                                                    <td>{{ inconsistencia.FEC_EXP_anterior|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                                                    <td>{{ inconsistencia.FEC_EXP|date:"d/m/Y"|default:"Sin fecha" }}</td>
                                                     <td>
-                                                        {% if inconsistencia.MEDFECHVTO_anterior == inconsistencia.MEDFECHVTO_actual %}
+                                                        {% if inconsistencia.FEC_EXP_anterior == inconsistencia.FEC_EXT_actual %}
                                                             <span class="badge bg-success">No</span>
                                                         {% else %}
                                                             <span class="badge bg-warning">Sí</span>
@@ -273,9 +273,9 @@
                                             </span>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <strong>MEDFECHVTO:</strong>
+                                            <strong>FEC_EXP:</strong>
                                             <span class="badge bg-light text-dark border ms-2">
-                                                {{ inconsistencia.MEDFECHVTO|date:"d/m/Y"|default:"Sin fecha" }}
+                                                {{ inconsistencia.FEC_EXP|date:"d/m/Y"|default:"Sin fecha" }}
                                             </span>
                                         </div>
                                         <div class="col-md-6 mb-3">

@@ -90,7 +90,7 @@
                                             {% if vencimiento.severidad == 'vencido' %}bg-danger
                                             {% elif vencimiento.severidad == 'por_vencer' %}bg-warning
                                             {% else %}bg-info{% endif %}">
-                                            {{ vencimiento.MEDFECHVTO|date:"d/m/Y" }}
+                                            {{ vencimiento.FEC_EXP|date:"d/m/Y" }}
                                         </span>
                                     </td>
                                 </tr>
@@ -283,7 +283,7 @@
                                   {% elif lote.severidad == 'por_vencer' %}table-warning
                                   {% else %}table-info{% endif %}">
                             <td>{{ lote.MEDLOTE|default:"SIN LOTE" }}</td>
-                            <td>{{ lote.MEDFECHVTO|date:"d/m/Y" }}</td>
+                            <td>{{ lote.FEC_EXP|date:"d/m/Y" }}</td>
                             <td>
                                 <span class="badge {% if lote.dias_restantes < 0 %}bg-danger
                                                    {% elif lote.dias_restantes <= 30 %}bg-warning

@@ -27,7 +27,7 @@ def detectar_vencimientos(request):
         with transaction.atomic():
             # Obtener todos los registros con fecha de vencimiento
             registros = FormDet.objects.filter(
-                MEDFECHVTO__isnull=False
+                FEC_EXP__isnull=False
             ).select_related('archivo_procesado')
             
             total_analizados = registros.count()
@@ -38,7 +38,7 @@ def detectar_vencimientos(request):
             for registro in registros:
                 try:
                     # Calcular días restantes
-                    dias_restantes = (registro.MEDFECHVTO - fecha_actual).days
+                    dias_restantes = (registro.FEC_EXP - fecha_actual).days
                     
                     # Determinar severidad
                     if dias_restantes < 0:
@@ -62,7 +62,7 @@ def detectar_vencimientos(request):
                             CODIGO_PRE=registro.CODIGO_PRE,
                             CODIGO_MED=registro.CODIGO_MED,
                             MEDLOTE=registro.MEDLOTE,
-                            MEDFECHVTO=registro.MEDFECHVTO,
+                            FEC_EXP=registro.FEC_EXP,
                             SALDO=registro.SALDO,
                             severidad=severidad,
                             dias_restantes=dias_restantes,
@@ -101,12 +101,15 @@ def lista_vencimientos(request):
     """
     Muestra lista de medicamentos vencidos o por vencer
     """
+    from verificaciones.db_utils import get_nombres_establecimientos_batch  # <-- IMPORTAR
+    
     # Inicializar el formulario con request.GET
     form = BuscarVencimientosForm(request.GET or None)
     
     vencimientos = []
     estadisticas = {}
     resumen_codigo_pre = []
+    nombres_establecimientos = {}  # <-- AGREGAR ESTA VARIABLE
     
     if request.method == 'GET' and any(request.GET.values()):
         if form.is_valid():
@@ -132,16 +135,21 @@ def lista_vencimientos(request):
                 queryset = queryset.filter(severidad=form.cleaned_data['severidad'])
             
             if form.cleaned_data['fecha_desde']:
-                queryset = queryset.filter(MEDFECHVTO__gte=form.cleaned_data['fecha_desde'])
+                queryset = queryset.filter(FEC_EXP__gte=form.cleaned_data['fecha_desde'])
             
             if form.cleaned_data['fecha_hasta']:
-                queryset = queryset.filter(MEDFECHVTO__lte=form.cleaned_data['fecha_hasta'])
+                queryset = queryset.filter(FEC_EXP__lte=form.cleaned_data['fecha_hasta'])
             
             if form.cleaned_data['solo_no_resueltos']:
                 queryset = queryset.filter(resuelto=False)
             
             # Ordenar por severidad y fecha
-            vencimientos = queryset.order_by('MEDFECHVTO', 'severidad')
+            vencimientos = queryset.order_by('FEC_EXP', 'severidad')
+            
+            # Obtener nombres de establecimientos en batch
+            if vencimientos.exists():
+                codigos_ipress = list(set(v.CODIGO_PRE for v in vencimientos))
+                nombres_establecimientos = get_nombres_establecimientos_batch(codigos_ipress)
             
             # Estadísticas
             total = vencimientos.count()
@@ -162,12 +170,18 @@ def lista_vencimientos(request):
     # Si no hay filtros, mostrar últimos detectados
     elif not any(request.GET.values()):
         vencimientos = MedicamentoVencido.objects.filter(resuelto=False).order_by('-fecha_deteccion')[:100]
+        
+        # Obtener nombres de establecimientos en batch para los últimos detectados
+        if vencimientos.exists():
+            codigos_ipress = list(set(v.CODIGO_PRE for v in vencimientos))
+            nombres_establecimientos = get_nombres_establecimientos_batch(codigos_ipress)
     
     context = {
         'form': form,
         'vencimientos': vencimientos,
         'estadisticas': estadisticas,
         'resumen_codigo_pre': resumen_codigo_pre,
+        'nombres_establecimientos': nombres_establecimientos,  # <-- AGREGAR AL CONTEXTO
         'hoy': timezone.now().date(),
     }
     
@@ -188,7 +202,7 @@ def detalle_vencimiento(request, vencimiento_id):
         CODIGO_PRE=vencimiento.CODIGO_PRE,
         CODIGO_MED=vencimiento.CODIGO_MED,
         resuelto=False
-    ).exclude(id=vencimiento_id).order_by('MEDFECHVTO')
+    ).exclude(id=vencimiento_id).order_by('FEC_EXP')
     
     # Calcular días absolutos para cada lote también
     for lote in otros_lotes:
@@ -257,7 +271,7 @@ def exportar_csv(request):
             venc.CODIGO_PRE,
             venc.CODIGO_MED,
             venc.MEDLOTE or '',
-            venc.MEDFECHVTO.strftime('%d/%m/%Y'),
+            venc.FEC_EXP.strftime('%d/%m/%Y'),
             venc.dias_restantes,
             venc.get_severidad_display(),
             float(venc.SALDO),
@@ -292,7 +306,7 @@ def dashboard_vencimientos(request):
     # Próximos vencimientos (7 días)
     semana_proxima = hoy + timedelta(days=7)
     proximos = MedicamentoVencido.objects.filter(
-        MEDFECHVTO__range=[hoy, semana_proxima],
+        FEC_EXP__range=[hoy, semana_proxima],
         resuelto=False
     ).count()
     

@@ -23,7 +23,7 @@ class MedicamentoVencido(models.Model):
     CODIGO_PRE = models.CharField(max_length=20, verbose_name="Código Establecimiento")
     CODIGO_MED = models.CharField(max_length=20, verbose_name="Código Medicamento")
     MEDLOTE = models.CharField(max_length=50, verbose_name="Lote", blank=True, null=True)
-    MEDFECHVTO = models.DateField(verbose_name="Fecha de Vencimiento")
+    FEC_EXP = models.DateField(verbose_name="Fecha de Vencimiento")
     SALDO = models.DecimalField(max_digits=15, decimal_places=2, verbose_name="Saldo Actual")
     
     # Información de la detección
@@ -53,16 +53,16 @@ class MedicamentoVencido(models.Model):
     class Meta:
         verbose_name = "Medicamento Vencido"
         verbose_name_plural = "Medicamentos Vencidos"
-        ordering = ['MEDFECHVTO', 'severidad']
+        ordering = ['FEC_EXP', 'severidad']
         indexes = [
-            models.Index(fields=['MEDFECHVTO']),
+            models.Index(fields=['FEC_EXP']),
             models.Index(fields=['severidad']),
             models.Index(fields=['CODIGO_PRE']),
             models.Index(fields=['resuelto']),
         ]
     
     def __str__(self):
-        return f"{self.CODIGO_MED} - Lote: {self.MEDLOTE} - Vence: {self.MEDFECHVTO}"
+        return f"{self.CODIGO_MED} - Lote: {self.MEDLOTE} - Vence: {self.FEC_EXP}"
     
     def marcar_resuelto(self, usuario, observaciones=""):
         """Marca el vencimiento como resuelto"""

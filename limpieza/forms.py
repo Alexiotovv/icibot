@@ -47,7 +47,7 @@ class LimpiarTablaForm(forms.Form):
         required=True,
         label="Confirmación",
         help_text="Escriba 'ELIMINAR' para confirmar",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ELIMINAR'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ELIMINAR','value':'ELIMINAR'})
     )
     
     def clean(self):

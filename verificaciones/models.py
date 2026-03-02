@@ -35,7 +35,7 @@ class InconsistenciaFormDet(models.Model):
     MEDLOTE = models.CharField(max_length=20, null=True, blank=True)
     FFINAN = models.CharField(max_length=3, null=True, blank=True)
     TIPSUM2 = models.CharField(max_length=2, null=True, blank=True)
-    MEDFECHVTO = models.DateField(null=True, blank=True)
+    FEC_EXP = models.DateField(null=True, blank=True)
     MEDREGSAN = models.CharField(max_length=20, null=True, blank=True)
     SALDO_actual = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
 
@@ -50,8 +50,8 @@ class InconsistenciaFormDet(models.Model):
     TIPSUM_anterior = models.CharField(max_length=2, null=True, blank=True)
     TIPSUM_actual = models.CharField(max_length=2, null=True, blank=True)
     
-    MEDFECHVTO_anterior = models.DateField(null=True, blank=True)
-    MEDFECHVTO_actual = models.DateField(null=True, blank=True)
+    FEC_EXP_anterior = models.DateField(null=True, blank=True)
+    FEC_EXP_actual = models.DateField(null=True, blank=True)
     
     MEDREGSAN_anterior = models.CharField(max_length=20, null=True, blank=True)
     MEDREGSAN_actual = models.CharField(max_length=20, null=True, blank=True)

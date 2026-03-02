@@ -181,7 +181,7 @@ def ejecutar_verificacion(request):
                     ANNOMES=mes_anterior
                 ).values(
                     'CODIGO_PRE', 'CODIGO_MED', 'MEDLOTE', 'FFINAN', 
-                    'TIPSUM2', 'MEDFECHVTO', 'MEDREGSAN', 'STOCK_FIN'  # <-- TIPSUM2
+                    'TIPSUM2', 'FEC_EXP', 'MEDREGSAN', 'STOCK_FIN'  # <-- TIPSUM2
                 )
                 
                 print(f"[DEBUG] Registros mes anterior ({mes_anterior}): {registros_anterior.count()}")
@@ -198,11 +198,11 @@ def ejecutar_verificacion(request):
                     medregsan = str(reg['MEDREGSAN']).strip() if reg['MEDREGSAN'] is not None else ''
                     
                     # Convertir fecha a string ISO
-                    if reg['MEDFECHVTO']:
+                    if reg['FEC_EXP']:
                         try:
-                            medfechvto = reg['MEDFECHVTO'].isoformat()
+                            medfechvto = reg['FEC_EXP'].isoformat()
                         except AttributeError:
-                            medfechvto = str(reg['MEDFECHVTO'])
+                            medfechvto = str(reg['FEC_EXP'])
                     else:
                         medfechvto = ''
                     
@@ -218,7 +218,7 @@ def ejecutar_verificacion(request):
                         'MEDLOTE': medlote,
                         'FFINAN': ffinan,
                         'TIPSUM2': tipsum2,  # <-- TIPSUM2
-                        'MEDFECHVTO': medfechvto,
+                        'FEC_EXP': medfechvto,
                         'MEDREGSAN': medregsan,
                         'CODIGO_PRE': codigo_pre,
                         'CODIGO_MED': codigo_med
@@ -244,11 +244,11 @@ def ejecutar_verificacion(request):
                     medregsan_actual = str(registro.MEDREGSAN).strip() if registro.MEDREGSAN is not None else ''
                     
                     # Convertir fecha a string ISO
-                    if registro.MEDFECHVTO:
+                    if registro.FEC_EXP:
                         try:
-                            medfechvto_actual = registro.MEDFECHVTO.isoformat()
+                            medfechvto_actual = registro.FEC_EXP.isoformat()
                         except AttributeError:
-                            medfechvto_actual = str(registro.MEDFECHVTO)
+                            medfechvto_actual = str(registro.FEC_EXP)
                     else:
                         medfechvto_actual = ''
                     
@@ -276,7 +276,7 @@ def ejecutar_verificacion(request):
                         print(f"  MEDLOTE: '{medlote_actual}'")
                         print(f"  FFINAN: '{ffinan_actual}'")
                         print(f"  MEDREGSAN: '{medregsan_actual}'")
-                        print(f"  MEDFECHVTO: '{medfechvto_actual}'")
+                        print(f"  FEC_EXP: '{medfechvto_actual}'")
                         print(f"  Key generada: {key}")
                         print(f"  SALDO actual: {registro.SALDO}")
                         
@@ -336,7 +336,7 @@ def ejecutar_verificacion(request):
                                 MEDLOTE=medlote_actual,
                                 FFINAN=ffinan_actual,
                                 TIPSUM2=tipsum2_actual,
-                                MEDFECHVTO=registro.MEDFECHVTO if medfechvto_actual else None,
+                                FEC_EXP=registro.FEC_EXP if medfechvto_actual else None,
                                 MEDREGSAN=medregsan_actual,
                                 
                                 # Campos de agrupación anteriores (del mes anterior)
@@ -349,8 +349,8 @@ def ejecutar_verificacion(request):
                                 TIPSUM_anterior=datos_anterior.get('TIPSUM', datos_anterior.get('TIPSUM2', '')),  # Maneja TIPSUM y TIPSUM2
                                 TIPSUM_actual=registro.TIPSUM,
                                 
-                                MEDFECHVTO_anterior=datos_anterior['MEDFECHVTO'] if datos_anterior['MEDFECHVTO'] else None,
-                                MEDFECHVTO_actual=registro.MEDFECHVTO if medfechvto_actual else None,
+                                FEC_EXP_anterior=datos_anterior['FEC_EXP'] if datos_anterior['FEC_EXP'] else None,
+                                FEC_EXP_actual=registro.FEC_EXP if medfechvto_actual else None,
                                 
                                 MEDREGSAN_anterior=datos_anterior['MEDREGSAN'],
                                 MEDREGSAN_actual=medregsan_actual,
@@ -377,7 +377,7 @@ def ejecutar_verificacion(request):
                                     'FFINAN': ffinan_actual,
                                     'TIPSUM': registro.TIPSUM,
                                     'TIPSUM2': tipsum2_actual,
-                                    'MEDFECHVTO': medfechvto_actual,
+                                    'FEC_EXP': medfechvto_actual,
                                     'MEDREGSAN': medregsan_actual,
                                     'nombre_archivo': registro.archivo_procesado.nombre_archivo if registro.archivo_procesado else None,
                                 }
@@ -523,7 +523,7 @@ def exportar_inconsistencias(request):
         'MEDLOTE_ANTERIOR', 'MEDLOTE_ACTUAL',
         'FFINAN_ANTERIOR', 'FFINAN_ACTUAL',
         'TIPSUM_ANTERIOR', 'TIPSUM_ACTUAL',
-        'MEDFECHVTO_ANTERIOR', 'MEDFECHVTO_ACTUAL',
+        'FEC_EXP_ANTERIOR', 'FEC_EXP_ACTUAL',
         'MEDREGSAN_ANTERIOR', 'MEDREGSAN_ACTUAL',
         'MES_ANTERIOR', 'MES_ACTUAL', 
         'STOCKFIN_ANTERIOR', 'SALDO_ACTUAL', 
@@ -539,7 +539,7 @@ def exportar_inconsistencias(request):
             inc.MEDLOTE_anterior or 'SIN_LOTE', inc.MEDLOTE_actual or 'SIN_LOTE',
             inc.FFINAN_anterior or 'SIN_FFINAN', inc.FFINAN_actual or 'SIN_FFINAN',
             inc.TIPSUM_anterior or 'SIN_TIPSUM', inc.TIPSUM_actual or 'SIN_TIPSUM',
-            inc.MEDFECHVTO_anterior or '', inc.MEDFECHVTO_actual or '',
+            inc.FEC_EXP_anterior or '', inc.FEC_EXP_actual or '',
             inc.MEDREGSAN_anterior or 'SIN_REGSAN', inc.MEDREGSAN_actual or 'SIN_REGSAN',
             inc.ANNOMES_anterior, inc.ANNOMES_actual,
             inc.STOCKFIN_anterior, inc.SALDO_actual,

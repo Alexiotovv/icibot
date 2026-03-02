@@ -239,7 +239,7 @@
                             <th>MEDLOTE</th>
                             <th>FFINAN</th>
                             <th>TIPSUM2</th>
-                            <th>MEDFECHVTO</th>
+                            <th>FEC_EXP</th>
                             <th>MEDREGSAN</th>
                             <th>Mes Anterior</th>
                             <th>Mes Actual</th>
@@ -305,11 +305,11 @@
                                 {% endif %}
                             </td>
                             
-                            <!-- MEDFECHVTO -->
+                            <!-- FEC_EXP -->
                             <td>
-                                {% if inc.MEDFECHVTO %}
+                                {% if inc.FEC_EXP %}
                                     <span class="badge bg-dark" title="Fecha de vencimiento">
-                                        {{ inc.MEDFECHVTO|date:"d/m/Y" }}
+                                        {{ inc.FEC_EXP|date:"d/m/Y" }}
                                     </span>
                                 {% else %}
                                     <span class="text-muted">Sin fecha</span>

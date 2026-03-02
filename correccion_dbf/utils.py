@@ -183,7 +183,7 @@ class ProcesadorDBF:
         return registros_con_inconsistencia
     
     def corregir_saldo_en_dbf(self, ruta_dbf, correcciones, crear_backup=True):
-        """Corrige los valores de SALDO en el archivo DBF usando STOCKFIN_anterior"""
+        """Corrige los valores de SALDO en el archivo DBF usando STOCKFIN_anterior y actualiza STOCK_FIN, STOCK_FIN1"""
         try:
             # Crear backup si se solicita
             if crear_backup:
@@ -235,7 +235,34 @@ class ProcesadorDBF:
                     raise Exception("Campo SALDO no encontrado en el DBF")
                 
                 saldo_field = field_map['SALDO']
+                saldo_offset = saldo_field['offset']
                 print(f"[DEBUG] Campo SALDO: longitud={saldo_field['length']}, decimales={saldo_field['decimal']}")
+                
+                # Buscar otros campos necesarios
+                ingre_field = field_map.get('INGRE')
+                total_field = field_map.get('TOTAL')
+                stock_fin_field = field_map.get('STOCK_FIN')
+                stock_fin1_field = field_map.get('STOCK_FIN1')
+                
+                if ingre_field:
+                    print(f"[DEBUG] Campo INGRE encontrado: offset={ingre_field['offset']}")
+                else:
+                    print(f"[ADVERTENCIA] Campo INGRE no encontrado en el DBF")
+                
+                if total_field:
+                    print(f"[DEBUG] Campo TOTAL encontrado: offset={total_field['offset']}")
+                else:
+                    print(f"[ADVERTENCIA] Campo TOTAL no encontrado en el DBF")
+                
+                if stock_fin_field:
+                    print(f"[DEBUG] Campo STOCK_FIN encontrado: offset={stock_fin_field['offset']}")
+                else:
+                    print(f"[ADVERTENCIA] Campo STOCK_FIN no encontrado en el DBF")
+                
+                if stock_fin1_field:
+                    print(f"[DEBUG] Campo STOCK_FIN1 encontrado: offset={stock_fin1_field['offset']}")
+                else:
+                    print(f"[ADVERTENCIA] Campo STOCK_FIN1 no encontrado en el DBF")
                 
                 # Ir al inicio de los registros
                 f.seek(header_length)
@@ -257,30 +284,94 @@ class ProcesadorDBF:
                     if record_data[0] == 0x2A:  # Registro eliminado
                         continue
                     
-                    # Calcular posición del campo SALDO
-                    saldo_offset = saldo_field['offset']
+                    # Obtener el valor actual de INGRE si existe
+                    valor_ingre = 0
+                    if ingre_field:
+                        ingre_offset = ingre_field['offset']
+                        f.seek(record_pos + 1 + ingre_offset)
+                        ingre_bytes = f.read(ingre_field['length'])
+                        try:
+                            ingre_str = ingre_bytes.decode('latin-1').strip()
+                            if ingre_str:
+                                valor_ingre = float(ingre_str)
+                            else:
+                                valor_ingre = 0
+                        except (ValueError, AttributeError) as e:
+                            print(f"[DEBUG] Error al leer INGRE: {str(e)}, bytes: {ingre_bytes}")
+                            valor_ingre = 0
                     
-                    # Convertir nuevo valor a formato DBF
+                    # Obtener el valor actual de TOTAL si existe
+                    valor_total = 0
+                    if total_field:
+                        total_offset = total_field['offset']
+                        f.seek(record_pos + 1 + total_offset)
+                        total_bytes = f.read(total_field['length'])
+                        try:
+                            total_str = total_bytes.decode('latin-1').strip()
+                            if total_str:
+                                valor_total = float(total_str)
+                            else:
+                                valor_total = 0
+                        except (ValueError, AttributeError) as e:
+                            print(f"[DEBUG] Error al leer TOTAL: {str(e)}, bytes: {total_bytes}")
+                            valor_total = 0
+                    
+                    # Calcular nuevo valor para STOCK_FIN/STOCK_FIN1
+                    # Fórmula: (SALDO + INGRE) - TOTAL
+                    nuevo_stock_fin = (nuevo_saldo + valor_ingre) - valor_total
+                    
+                    # 1. Actualizar SALDO con STOCKFIN_anterior
+                    # Convertir nuevo valor de SALDO a formato DBF
                     if saldo_field['type'] == 'N':  # Numérico
-                        format_str = f"{{:>{saldo_field['length']}.{saldo_field['decimal']}f}}"
-                        saldo_str = format_str.format(float(nuevo_saldo))
+                        saldo_format_str = f"{{:>{saldo_field['length']}.{saldo_field['decimal']}f}}"
+                        saldo_str = saldo_format_str.format(float(nuevo_saldo))
                         saldo_bytes = saldo_str.encode('latin-1')
                     else:
                         saldo_str = str(nuevo_saldo)
                         saldo_bytes = saldo_str.ljust(saldo_field['length']).encode('latin-1')
                     
-                    # Volver a la posición del campo SALDO y escribir
+                    # Escribir nuevo SALDO
                     f.seek(record_pos + 1 + saldo_offset)
                     f.write(saldo_bytes)
+                    
+                    # 2. Actualizar STOCK_FIN si existe
+                    if stock_fin_field:
+                        if stock_fin_field['type'] == 'N':
+                            stock_fin_format_str = f"{{:>{stock_fin_field['length']}.{stock_fin_field['decimal']}f}}"
+                            stock_fin_str = stock_fin_format_str.format(float(nuevo_stock_fin))
+                        else:
+                            stock_fin_str = str(nuevo_stock_fin)
+                        stock_fin_bytes = stock_fin_str.encode('latin-1')
+                        f.seek(record_pos + 1 + stock_fin_field['offset'])
+                        f.write(stock_fin_bytes)
+                    
+                    # 3. Actualizar STOCK_FIN1 si existe
+                    if stock_fin1_field:
+                        if stock_fin1_field['type'] == 'N':
+                            stock_fin1_format_str = f"{{:>{stock_fin1_field['length']}.{stock_fin1_field['decimal']}f}}"
+                            stock_fin1_str = stock_fin1_format_str.format(float(nuevo_stock_fin))
+                        else:
+                            stock_fin1_str = str(nuevo_stock_fin)
+                        stock_fin1_bytes = stock_fin1_str.encode('latin-1')
+                        f.seek(record_pos + 1 + stock_fin1_field['offset'])
+                        f.write(stock_fin1_bytes)
                     
                     correcciones_aplicadas.append({
                         'indice': indice,
                         'saldo_anterior': correccion['saldo_actual'],
                         'saldo_nuevo': nuevo_saldo,
-                        'inconsistencia': correccion['inconsistencia']
+                        'inconsistencia': correccion['inconsistencia'],
+                        'ingre_valor': valor_ingre,
+                        'total_valor': valor_total,
+                        'stock_fin_nuevo': nuevo_stock_fin
                     })
                     
-                    print(f"[DEBUG] Corregido registro {indice}: SALDO {correccion['saldo_actual']} -> {nuevo_saldo}")
+                    print(f"[DEBUG] Corregido registro {indice}:")
+                    print(f"  SALDO: {correccion['saldo_actual']} -> {nuevo_saldo}")
+                    print(f"  INGRE: {valor_ingre}")
+                    print(f"  TOTAL: {valor_total}")
+                    print(f"  Cálculo: ({nuevo_saldo} + {valor_ingre}) - {valor_total} = {nuevo_stock_fin}")
+                    print(f"  STOCK_FIN/STOCK_FIN1: {nuevo_stock_fin}")
                 
                 print(f"[DEBUG] Total correcciones aplicadas: {len(correcciones_aplicadas)}")
                 return {

@@ -178,7 +178,6 @@ def seleccionar_inconsistencias(request):
     return render(request, 'correccion_dbf/seleccionar_inconsistencias.html', context)
 
 # correccion_dbf/views.py - función ejecutar_correccion
-# correccion_dbf/views.py - función ejecutar_correccion (VERSIÓN SIMPLIFICADA)
 @login_required
 @permission_required('correccion_dbf.can_correct_dbf', raise_exception=True)
 def ejecutar_correccion(request):
@@ -297,7 +296,8 @@ def ejecutar_correccion(request):
                 valor_anterior=correccion['saldo_anterior'],
                 valor_corregido=correccion['saldo_nuevo'],
                 diferencia=abs(correccion['saldo_nuevo'] - correccion['saldo_anterior']),
-                observaciones=f'SALDO corregido con STOCK_FIN anterior: {correccion["saldo_anterior"]} -> {correccion["saldo_nuevo"]}'
+                observaciones=f'SALDO corregido con STOCK_FIN anterior: {correccion["saldo_anterior"]} -> {correccion["saldo_nuevo"]}. '
+                f'STOCK_FIN y STOCK_FIN1 actualizados con cálculo (SALDO + INGRE) - TOTAL'
             )
             
             # IMPORTANTE: Marcar inconsistencia como resuelta
