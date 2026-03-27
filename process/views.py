@@ -1016,17 +1016,169 @@ def procesar_imed3(dbf_path, archivo_procesado):
         raise
 
 
-#esto nuevo codigo agrega FECHA, a los campos nulos
+# #esto nuevo codigo agrega FECHA, a los campos nulos
+# @api_view(['POST'])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+# #@csrf_exempt  # Solo si necesitas deshabilitar CSRF para pruebas
+# def procesar_zip(request): 
+#     if 'archivo' not in request.FILES:
+#         return Response({'error': 'Debe proporcionar un archivo ZIP'}, status=400)
+    
+#     zip_file = request.FILES['archivo']
+#     password = request.POST.get('password', '').encode('utf-8') or None
+
+#     TABLAS_OBJETIVO = {
+#         'formdet': 'formDet',
+#         # 'ime1': 'Ime1',
+#         # 'imed2': 'Imed2',
+#         # 'imed3': 'Imed3'
+#     }
+#     resultados = {nombre: [] for nombre in TABLAS_OBJETIVO.values()}
+#     #print(f"Tamaño recibido: {zip_file.size / (1024*1024):.2f} MB")
+#     with tempfile.TemporaryDirectory() as tmp_dir:
+#         try:
+#             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+#                 zip_ref.extractall(tmp_dir, pwd=password)
+            
+#             for filename in os.listdir(tmp_dir):
+#                 file_lower = filename.lower()
+                
+#                 if filename in TABLAS_OBJETIVO:  # Para formDet.dbf (exact match)
+#                     tabla_key = filename
+#                 else:
+#                     file_lower = filename.lower()
+#                     tabla_key = next(
+#                         (key for key in TABLAS_OBJETIVO 
+#                         if file_lower.startswith(key) and not file_lower == 'formdet1.dbf'),
+#                         None
+#                     )
+
+#                 if tabla_key:
+#                     ruta_dbf = os.path.join(tmp_dir, filename)
+#                     try:
+#                         # SOLUCIÓN ACTUALIZADA: Sin parámetros no soportados
+#                         table = dbf.Table(
+#                             filename=ruta_dbf,
+#                             codepage='utf8'  # Mantenemos solo el parámetro esencial
+#                         )
+#                         table.open()
+
+#                         # Procesamiento seguro con manejo de errores por registro
+#                         registros = []
+#                         for record in table:
+#                             try:
+#                                 registro_limpio = {}
+#                                 for field in table.field_names:
+#                                     try:
+#                                         value = record[field]
+#                                         if isinstance(value, str):
+#                                             value = value.strip()  # Elimina espacios al inicio/fin
+#                                             value = ' '.join(value.split())  # Elimina espacios múltiples internos
+                                            
+#                                         elif isinstance(value, bytes):
+#                                             try:
+#                                                 value = value.decode('utf-8')
+#                                             except UnicodeDecodeError:
+#                                                 value = value.decode('latin1', errors='replace')
+#                                         registro_limpio[field] = value
+#                                     except:
+#                                         registro_limpio[field] = None  # Valor por defecto si hay error
+                                
+#                                 # ========== NUEVA LÓGICA PARA FECHA ==========
+#                                 # Verificar si es la tabla formDet y si el campo FECHA existe
+#                                 if tabla_key == 'formdet' and 'FECHA' in registro_limpio:
+#                                     fecha_actual = registro_limpio.get('FECHA')
+#                                     annomes = registro_limpio.get('ANNOMES')
+                                    
+#                                     # Si FECHA es None, vacío o string vacío, y ANNOMES existe
+#                                     if (fecha_actual is None or fecha_actual == '' or fecha_actual == ' ') and annomes:
+#                                         try:
+#                                             # Convertir ANNOMES (ej: 202601) a año y mes
+#                                             annomes_str = str(annomes).strip()
+#                                             if len(annomes_str) == 6 and annomes_str.isdigit():
+#                                                 año = int(annomes_str[:4])
+#                                                 mes = int(annomes_str[4:6])
+                                                
+#                                                 # Calcular el primer día del mes siguiente
+#                                                 if mes == 12:
+#                                                     año_siguiente = año + 1
+#                                                     mes_siguiente = 1
+#                                                 else:
+#                                                     año_siguiente = año
+#                                                     mes_siguiente = mes + 1
+                                                
+#                                                 # Formatear como YYYY-MM-DD
+#                                                 nueva_fecha = f"{año_siguiente:04d}-{mes_siguiente:02d}-01"
+#                                                 registro_limpio['FECHA'] = nueva_fecha
+#                                         except (ValueError, TypeError) as e:
+#                                             # Si hay error al procesar, dejamos la fecha como estaba
+#                                             pass
+                                
+#                                 registros.append(registro_limpio)
+#                             except:
+#                                 continue  # Si el registro completo falla, lo omitimos
+                        
+#                         registros_unicos = list({tuple(sorted(r.items())): r for r in registros}.values())
+#                         resultados[TABLAS_OBJETIVO[tabla_key]] = registros_unicos
+#                         # resultados[TABLAS_OBJETIVO[tabla_key]] = registros
+#                         table.close()
+                        
+#                     except Exception as e:
+#                         # Error más específico para diagnóstico
+#                         return Response(
+#                             {
+#                                 'error': f'Error al procesar {filename}',
+#                                 'detalle': str(e),
+#                                 'sugerencia': 'Verifique la estructura del archivo DBF'
+#                             },
+#                             status=400
+#                         )
+
+#         except zipfile.BadZipFile:
+#             return Response({'error': 'Archivo ZIP corrupto o contraseña incorrecta'}, status=400)
+#         except Exception as e:
+#             return Response({'error': f'Error inesperado: {str(e)}'}, status=500)
+
+ 
+#     if 'formDet' in resultados:
+#         resultados['FormDet'] = resultados.pop('formDet')
+
+#     return Response({
+#         'status': 'success',
+#         'tablas_procesadas': resultados,
+#         'archivos_procesados': [k for k, v in resultados.items() if v]
+#     })
+
+
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-#@csrf_exempt  # Solo si necesitas deshabilitar CSRF para pruebas
-def procesar_zip(request): 
+def procesar_zip(request):
+    # Log de la petición
+    logger.info("=" * 50)
+    logger.info("Nueva petición a /api/procesar-zip/")
+    logger.info(f"Método: {request.method}")
+    logger.info(f"Usuario autenticado: {request.user}")
+    logger.info(f"Headers: {dict(request.headers)}")
+    logger.info(f"Files: {list(request.FILES.keys())}")
+    logger.info(f"POST data: {dict(request.POST)}")
+    
     if 'archivo' not in request.FILES:
+        logger.error("No se encontró archivo en la petición")
         return Response({'error': 'Debe proporcionar un archivo ZIP'}, status=400)
     
     zip_file = request.FILES['archivo']
     password = request.POST.get('password', '').encode('utf-8') or None
+    
+    logger.info(f"Archivo recibido: {zip_file.name}")
+    logger.info(f"Tamaño: {zip_file.size} bytes")
+    logger.info(f"Password: {'Sí' if password else 'No'}")
 
     TABLAS_OBJETIVO = {
         'formdet': 'formDet',
@@ -1149,6 +1301,9 @@ def procesar_zip(request):
         'tablas_procesadas': resultados,
         'archivos_procesados': [k for k, v in resultados.items() if v]
     })
+
+
+
 
 
 
