@@ -1157,8 +1157,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
 def procesar_zip(request):
     # Log de la petición
     logger.info("=" * 50)
