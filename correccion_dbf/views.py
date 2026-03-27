@@ -439,7 +439,6 @@ def dashboard_correcciones(request):
     
     return render(request, 'correccion_dbf/dashboard.html', context)
 
-
 # correccion_dbf/views.py - función limpiar_archivo
 @login_required
 def limpiar_archivo(request):

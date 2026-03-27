@@ -94,16 +94,17 @@
             </a>
             <div class="collapse" id="menuConfig">
               <ul class="nav flex-column submenu ps-3">
-                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'lista_enlaces' %}">EnlacesyToken</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'token_list' %}">EndPointsyToken</a></li>  -->
-                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'consumir_api' %}">Descarga de archivos</a></li> -->
                 <li class="nav-item"><a class="nav-link" href="{% url 'subir_zip_volumen' %}">Procesar Archivos</a></li>
-                <!-- <li class="nav-item"><a class="nav-link" href="{% url 'historico_index' %}">Procesos Históricos</a></li> -->
                 <li class="nav-item"><a class="nav-link" href="{% url 'archivos_procesados' %}">Archivos Procesados</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'verificaciones:verificar_inconsistencias' %}">Verificar Inconsistencias Stock/Saldo</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'vencimientos:lista_vencimientos' %}">Verificar Inconsistencias Vencimientos</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'limpieza:dashboard' %}">Limpieza de Datos</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'correccion_dbf:dashboard' %}">Corección DBF</a></li>                
+                
+                <li class="nav-item"><a class="nav-link" href="{% url 'historico_index' %}">Procesos Históricos</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'consumir_api' %}">Descarga de archivos</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'lista_enlaces' %}">EnlacesyToken</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'token_list' %}">EndPointsyToken</a></li> 
                 
               </ul>
             </div>
