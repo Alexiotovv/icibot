@@ -1159,6 +1159,7 @@ logger = logging.getLogger(__name__)
 @api_view(['POST'])
 # @authentication_classes([TokenAuthentication])
 # @permission_classes([IsAuthenticated])
+@csrf_exempt  # Solo si necesitas deshabilitar CSRF para pruebas
 def procesar_zip(request):
     # Log de la petición
     logger.info("=" * 50)
